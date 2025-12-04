@@ -1,96 +1,100 @@
+@import '@fontsource/oswald/400.css';
+@import '@fontsource/oswald/500.css';
+@import '@fontsource/oswald/600.css';
+@import '@fontsource/oswald/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/inter/300.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Narrative Engine Color System */
+    --background: 0 0% 4%; /* #0A0A0A charcoal black */
+    --foreground: 40 18% 88%; /* #E5E1D8 bone paper */
+    
+    --card: 0 0% 6%;
+    --card-foreground: 40 18% 88%;
+    
+    --popover: 0 0% 6%;
+    --popover-foreground: 40 18% 88%;
+    
+    --primary: 40 18% 88%; /* bone paper as primary */
+    --primary-foreground: 0 0% 4%;
+    
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 40 18% 88%;
+    
+    --muted: 0 0% 12%;
+    --muted-foreground: 40 10% 55%;
+    
+    --accent: 18 100% 38%; /* #C04000 international orange */
+    --accent-foreground: 40 18% 95%;
+    
+    --destructive: 18 100% 38%;
+    --destructive-foreground: 40 18% 95%;
+    
+    --border: 40 10% 25%;
+    --input: 0 0% 8%;
+    --ring: 18 100% 38%;
+    
+    --radius: 0px;
+    
+    /* Extended Palette */
+    --bone: 40 18% 88%;
+    --bone-dim: 40 10% 55%;
+    --charcoal: 0 0% 4%;
+    --charcoal-light: 0 0% 8%;
+    --charcoal-lighter: 0 0% 12%;
+    --orange-hot: 18 100% 38%;
+    --orange-glow: 18 100% 45%;
+    --neutral-cool: 210 15% 35%;
+    --opportunity-blue: 200 30% 40%;
+    
+    /* Sidebar */
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 40 18% 88%;
+    --sidebar-primary: 18 100% 38%;
+    --sidebar-primary-foreground: 40 18% 95%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 40 18% 88%;
+    --sidebar-border: 40 10% 20%;
+    --sidebar-ring: 18 100% 38%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 0 0% 4%;
+    --foreground: 40 18% 88%;
+    --card: 0 0% 6%;
+    --card-foreground: 40 18% 88%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 40 18% 88%;
+    --primary: 40 18% 88%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 40 18% 88%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 40 10% 55%;
+    --accent: 18 100% 38%;
+    --accent-foreground: 40 18% 95%;
+    --destructive: 18 100% 38%;
+    --destructive-foreground: 40 18% 95%;
+    --border: 40 10% 25%;
+    --input: 0 0% 8%;
+    --ring: 18 100% 38%;
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 40 18% 88%;
+    --sidebar-primary: 18 100% 38%;
+    --sidebar-primary-foreground: 40 18% 95%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 40 18% 88%;
+    --sidebar-border: 40 10% 20%;
+    --sidebar-ring: 18 100% 38%;
   }
 }
 
@@ -98,8 +102,189 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.01em;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .font-display {
+    font-family: 'Oswald', sans-serif;
+  }
+  
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  .font-body {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  /* Section Headers */
+  .section-header {
+    @apply font-display text-sm uppercase tracking-widest text-muted-foreground border-b border-border pb-2 mb-4;
+  }
+  
+  /* Tactical Card */
+  .tactical-card {
+    @apply border border-border bg-card p-4;
+  }
+  
+  /* Hot/Conflict Styling */
+  .hot-border {
+    @apply border-accent;
+  }
+  
+  .hot-text {
+    @apply text-accent;
+  }
+  
+  .hot-badge {
+    @apply bg-accent text-accent-foreground px-2 py-0.5 text-xs font-display uppercase tracking-wider;
+  }
+  
+  /* Role Badges */
+  .role-badge {
+    @apply px-2 py-0.5 text-xs font-display uppercase tracking-wider border;
+  }
+  
+  .role-protagonist {
+    @apply border-foreground text-foreground;
+  }
+  
+  .role-antagonist {
+    @apply border-accent text-accent;
+  }
+  
+  .role-wildcard {
+    @apply border-orange-glow text-orange-glow;
+  }
+  
+  .role-neutral {
+    @apply border-muted-foreground text-muted-foreground;
+  }
+  
+  .role-supporting {
+    @apply border-bone-dim text-bone-dim;
+  }
+  
+  /* Arc Stage Markers */
+  .arc-marker {
+    @apply w-3 h-3 border border-foreground;
+  }
+  
+  .arc-marker-active {
+    @apply bg-accent border-accent;
+  }
+  
+  /* Probability Badges */
+  .prob-low {
+    @apply text-muted-foreground;
+  }
+  
+  .prob-medium {
+    @apply text-foreground;
+  }
+  
+  .prob-high {
+    @apply text-accent;
+  }
+  
+  /* Severity Indicators */
+  .severity-low {
+    @apply text-muted-foreground;
+  }
+  
+  .severity-medium {
+    @apply text-foreground;
+  }
+  
+  .severity-high {
+    @apply text-accent;
+  }
+  
+  .severity-critical {
+    @apply text-accent font-medium;
+  }
+  
+  /* Divider Line */
+  .divider {
+    @apply border-t border-border my-6;
+  }
+  
+  /* Data Row */
+  .data-row {
+    @apply flex justify-between items-center py-1 border-b border-border/50 last:border-b-0;
+  }
+  
+  /* Input Styling */
+  .tactical-input {
+    @apply bg-input border border-border text-foreground placeholder:text-muted-foreground focus:border-accent focus:ring-0 focus:outline-none;
+  }
+  
+  /* Button Variants */
+  .btn-tactical {
+    @apply bg-transparent border border-foreground text-foreground hover:bg-foreground hover:text-background transition-colors font-display uppercase tracking-wider text-sm px-4 py-2;
+  }
+  
+  .btn-hot {
+    @apply bg-accent border border-accent text-accent-foreground hover:bg-orange-glow transition-colors font-display uppercase tracking-wider text-sm px-4 py-2;
+  }
+}
+
+@layer utilities {
+  .text-bone {
+    color: hsl(var(--bone));
+  }
+  
+  .text-bone-dim {
+    color: hsl(var(--bone-dim));
+  }
+  
+  .bg-charcoal {
+    background-color: hsl(var(--charcoal));
+  }
+  
+  .bg-charcoal-light {
+    background-color: hsl(var(--charcoal-light));
+  }
+  
+  .bg-charcoal-lighter {
+    background-color: hsl(var(--charcoal-lighter));
+  }
+  
+  .text-orange-hot {
+    color: hsl(var(--orange-hot));
+  }
+  
+  .text-orange-glow {
+    color: hsl(var(--orange-glow));
+  }
+  
+  .bg-orange-hot {
+    background-color: hsl(var(--orange-hot));
+  }
+  
+  .border-orange-hot {
+    border-color: hsl(var(--orange-hot));
+  }
+  
+  .text-opportunity {
+    color: hsl(var(--opportunity-blue));
+  }
+  
+  .border-opportunity {
+    border-color: hsl(var(--opportunity-blue));
   }
 }
