@@ -1,8 +1,7 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Plus, FileText, X, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Upload, Plus, X, Loader2 } from "lucide-react";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 interface IncrementalUpdateInputProps {
   onSubmit: (text: string) => void;
@@ -10,128 +9,38 @@ interface IncrementalUpdateInputProps {
   isLoading?: boolean;
 }
 
-const SUPPORTED_TYPES = [
-  ".txt", ".md", ".json", ".csv", ".html", ".htm", ".xml",
-  ".pdf", ".docx", ".doc"
-];
-
-const SUPPORTED_MIME_TYPES = [
-  "text/plain",
-  "text/markdown",
-  "application/json",
-  "text/csv",
-  "text/html",
-  "application/xml",
-  "text/xml",
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/msword",
-];
-
 export function IncrementalUpdateInput({ onSubmit, onCancel, isLoading }: IncrementalUpdateInputProps) {
   const [text, setText] = useState("");
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
+  
+  const {
+    uploadedFile,
+    isUploading,
+    isDragOver,
+    fileInputRef,
+    handleFileSelect,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    clearFile,
+    SUPPORTED_TYPES,
+    SUPPORTED_MIME_TYPES,
+  } = useFileUpload({
+    onTextExtracted: (extractedText) => setText(prev => prev ? `${prev}\n\n${extractedText}` : extractedText),
+  });
   
   const handleSubmit = () => {
     if (text.trim() && !isLoading) {
       onSubmit(text);
     }
   };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Maximum file size is 10MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const isValidType = SUPPORTED_MIME_TYPES.includes(file.type) || 
-      SUPPORTED_TYPES.some(ext => file.name.toLowerCase().endsWith(ext));
-    
-    if (!isValidType) {
-      toast({
-        title: "Unsupported file type",
-        description: "Supported: TXT, MD, JSON, CSV, HTML, XML, PDF, DOCX",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadedFile(file);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to upload files.",
-          variant: "destructive",
-        });
-        setUploadedFile(null);
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-file`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to parse file");
-      }
-
-      const data = await response.json();
-      
-      setText(prev => prev ? `${prev}\n\n${data.text}` : data.text);
-      toast({
-        title: "File processed",
-        description: `Extracted ${data.characterCount.toLocaleString()} characters from ${file.name}`,
-      });
-    } catch (error) {
-      console.error("File upload error:", error);
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to process file",
-        variant: "destructive",
-      });
-      setUploadedFile(null);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const clearFile = () => {
-    setUploadedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
   
   return (
-    <div className="border border-accent bg-card">
+    <div 
+      className={`border bg-card transition-colors ${isDragOver ? 'border-accent bg-accent/5' : 'border-accent'}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Header */}
       <div className="border-b border-accent px-4 py-3 flex items-center justify-between bg-accent/10">
         <div className="flex items-center gap-3">
@@ -163,11 +72,19 @@ export function IncrementalUpdateInput({ onSubmit, onCancel, isLoading }: Increm
       </div>
       
       {/* Input Area */}
-      <div className="p-4">
+      <div className="p-4 relative">
+        {isDragOver && (
+          <div className="absolute inset-0 flex items-center justify-center bg-accent/10 border-2 border-dashed border-accent z-10">
+            <div className="text-center">
+              <Upload className="w-8 h-8 text-accent mx-auto mb-2" />
+              <p className="text-sm font-display uppercase tracking-widest text-accent">Drop file here</p>
+            </div>
+          </div>
+        )}
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Add new developments, updates, or additional context to merge into the current narrative model..."
+          placeholder="Add new developments, updates, or additional context to merge into the current narrative model... (or drag & drop a file)"
           className="min-h-[150px] bg-input border-border text-foreground placeholder:text-muted-foreground font-body text-sm resize-none focus:border-accent focus:ring-0"
           autoFocus
         />
