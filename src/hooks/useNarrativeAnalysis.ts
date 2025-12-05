@@ -7,13 +7,16 @@ export function useNarrativeAnalysis() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const analyzeNarrative = async (text: string): Promise<NarrativeModel | null> => {
+  const analyzeNarrative = async (
+    text: string, 
+    existingModel?: NarrativeModel
+  ): Promise<NarrativeModel | null> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke('analyze-narrative', {
-        body: { text }
+        body: { text, existingModel }
       });
 
       if (fnError) {
@@ -24,7 +27,10 @@ export function useNarrativeAnalysis() {
         throw new Error(data.error);
       }
 
-      toast.success("Narrative analysis complete");
+      const successMessage = existingModel 
+        ? "Narrative model updated with new insights" 
+        : "Narrative analysis complete";
+      toast.success(successMessage);
       return data as NarrativeModel;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Analysis failed';
