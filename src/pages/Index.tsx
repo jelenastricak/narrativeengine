@@ -184,9 +184,9 @@ const Index = () => {
         
         {/* User bar */}
         <div className="border-b border-border">
-          <div className="container mx-auto px-6 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-muted-foreground font-mono">
+          <div className="container mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <span className="text-xs text-muted-foreground font-mono truncate max-w-[150px] sm:max-w-none">
                 {user.email}
               </span>
               <button
@@ -196,7 +196,7 @@ const Index = () => {
                 }`}
               >
                 <History className="w-3 h-3" />
-                History
+                <span className="hidden xs:inline">History</span>
               </button>
             </div>
             <button
@@ -204,16 +204,16 @@ const Index = () => {
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-mono transition-colors"
             >
               <LogOut className="w-3 h-3" />
-              Sign Out
+              <span className="hidden xs:inline">Sign Out</span>
             </button>
           </div>
         </div>
         
-        <main className="container mx-auto px-6 py-8">
+        <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
           {showHistory ? (
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display text-lg tracking-[0.15em] text-foreground">
+            <div className="max-w-4xl mx-auto px-0 sm:px-0">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="font-display text-base sm:text-lg tracking-[0.15em] text-foreground">
                   ANALYSIS HISTORY
                 </h2>
                 <button
@@ -238,22 +238,22 @@ const Index = () => {
           ) : showInput ? (
             <div className="max-w-4xl mx-auto">
               {/* Welcome Panel */}
-              <div className="text-center mb-8">
-                <h2 className="font-display text-2xl tracking-[0.15em] text-foreground mb-2">
+              <div className="text-center mb-6 sm:mb-8 px-2 sm:px-0">
+                <h2 className="font-display text-xl sm:text-2xl tracking-[0.1em] sm:tracking-[0.15em] text-foreground mb-2">
                   NARRATIVE ANALYSIS
                 </h2>
-                <p className="text-muted-foreground font-body max-w-2xl mx-auto">
-                  Input any text—notes, documents, updates, transcripts, market data—and the engine will extract entities, arcs, conflicts, opportunities, risks, and future scenarios into a structured narrative model.
+                <p className="text-sm sm:text-base text-muted-foreground font-body max-w-2xl mx-auto">
+                  Input any text—notes, documents, updates, transcripts, market data—and the engine will extract entities, arcs, conflicts, opportunities, risks, and future scenarios.
                 </p>
               </div>
               
               <NarrativeInput onSubmit={handleAnalyze} isLoading={isLoading} />
               
               {/* Demo Button */}
-              <div className="mt-6 text-center">
+              <div className="mt-4 sm:mt-6 text-center">
                 <button 
                   onClick={() => handleAnalyze("Demo analysis")}
-                  className="text-sm text-muted-foreground hover:text-foreground font-body underline underline-offset-4 transition-colors"
+                  className="text-xs sm:text-sm text-muted-foreground hover:text-foreground font-body underline underline-offset-4 transition-colors"
                 >
                   Load demo narrative model
                 </button>
@@ -264,81 +264,84 @@ const Index = () => {
           ) : (
             <>
               {/* Analysis Controls */}
-              <div className="flex items-center justify-between mb-8 border-b border-border pb-4">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <span className="text-xs font-display uppercase tracking-widest text-muted-foreground">
-                      Active Narrative Model
-                    </span>
-                    <p className="text-sm text-foreground font-mono">
-                      {model?.entities.length} entities • {model?.current_arcs.length} arcs • {model?.conflicts.length} conflicts
-                    </p>
+              <div className="mb-6 sm:mb-8 border-b border-border pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div>
+                      <span className="text-xs font-display uppercase tracking-widest text-muted-foreground">
+                        Active Narrative Model
+                      </span>
+                      <p className="text-xs sm:text-sm text-foreground font-mono">
+                        {model?.entities.length} entities • {model?.current_arcs.length} arcs • {model?.conflicts.length} conflicts
+                      </p>
+                    </div>
+                    {currentAnalysisId && user && (
+                      <PresenceIndicator
+                        users={presence.users}
+                        currentUserId={user.id}
+                        isConnected={presence.isConnected}
+                      />
+                    )}
                   </div>
-                  {currentAnalysisId && user && (
-                    <PresenceIndicator
-                      users={presence.users}
-                      currentUserId={user.id}
-                      isConnected={presence.isConnected}
-                    />
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => model && exportToJSON(model)}
-                    className="btn-tactical flex items-center gap-2"
-                    title="Export as JSON"
-                  >
-                    <FileJson className="w-4 h-4" />
-                    JSON
-                  </button>
-                  <button
-                    onClick={() => model && exportToPDF(model)}
-                    className="btn-tactical flex items-center gap-2"
-                    title="Export as PDF"
-                  >
-                    <Download className="w-4 h-4" />
-                    PDF
-                  </button>
-                  {currentAnalysisId && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <button 
-                          className="btn-tactical flex items-center gap-2 text-destructive hover:bg-destructive/10"
-                          title="Delete Analysis"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-background border-border">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="font-display tracking-widest">DELETE ANALYSIS</AlertDialogTitle>
-                          <AlertDialogDescription className="font-body">
-                            This action cannot be undone. This will permanently delete this narrative analysis from your history.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="btn-tactical">Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDeleteAnalysis} className="btn-hot">
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                  <button 
-                    onClick={handleNewAnalysis}
-                    className="btn-tactical"
-                  >
-                    New Analysis
-                  </button>
-                  <button 
-                    onClick={() => setShowIncrementalInput(true)}
-                    className="btn-hot flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Updates
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <button
+                      onClick={() => model && exportToJSON(model)}
+                      className="btn-tactical flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                      title="Export as JSON"
+                    >
+                      <FileJson className="w-4 h-4" />
+                      <span className="hidden sm:inline">JSON</span>
+                    </button>
+                    <button
+                      onClick={() => model && exportToPDF(model)}
+                      className="btn-tactical flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                      title="Export as PDF"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="hidden sm:inline">PDF</span>
+                    </button>
+                    {currentAnalysisId && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button 
+                            className="btn-tactical flex items-center gap-1 sm:gap-2 text-destructive hover:bg-destructive/10 text-xs sm:text-sm"
+                            title="Delete Analysis"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-background border-border mx-4 sm:mx-auto max-w-[calc(100vw-2rem)] sm:max-w-lg">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="font-display tracking-widest text-sm sm:text-base">DELETE ANALYSIS</AlertDialogTitle>
+                            <AlertDialogDescription className="font-body text-xs sm:text-sm">
+                              This action cannot be undone. This will permanently delete this narrative analysis from your history.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                            <AlertDialogCancel className="btn-tactical">Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteAnalysis} className="btn-hot">
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    <button 
+                      onClick={handleNewAnalysis}
+                      className="btn-tactical text-xs sm:text-sm"
+                    >
+                      New
+                    </button>
+                    <button 
+                      onClick={() => setShowIncrementalInput(true)}
+                      className="btn-hot flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="hidden sm:inline">Add Updates</span>
+                      <span className="sm:hidden">Add</span>
+                    </button>
+                  </div>
                 </div>
               </div>
               
@@ -358,8 +361,8 @@ const Index = () => {
         </main>
         
         {/* Footer */}
-        <footer className="border-t border-border mt-12">
-          <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+        <footer className="border-t border-border mt-8 sm:mt-12">
+          <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-1 text-center sm:text-left">
             <span className="text-xs text-muted-foreground font-mono">
               NARRATIVE ENGINE v1.0
             </span>

@@ -73,12 +73,12 @@ export default function Auth() {
         <title>{isLogin ? "Sign In" : "Sign Up"} | The Narrative Engine</title>
       </Helmet>
       
-      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 sm:px-6">
         <div className="w-full max-w-md">
           {/* Logo */}
-          <div className="flex flex-col items-center mb-8">
-            <img src={logo} alt="Narrative Engine" className="w-16 h-16 invert mb-4" />
-            <h1 className="font-display text-xl tracking-[0.2em] text-foreground">
+          <div className="flex flex-col items-center mb-6 sm:mb-8">
+            <img src={logo} alt="Narrative Engine" className="w-12 sm:w-16 h-12 sm:h-16 invert mb-3 sm:mb-4" />
+            <h1 className="font-display text-base sm:text-xl tracking-[0.15em] sm:tracking-[0.2em] text-foreground text-center">
               THE NARRATIVE ENGINE
             </h1>
             <p className="text-xs text-muted-foreground font-body tracking-wide">
@@ -87,12 +87,12 @@ export default function Auth() {
           </div>
 
           {/* Auth Form */}
-          <div className="border border-border p-8">
-            <h2 className="font-display text-lg tracking-widest text-foreground mb-6 text-center uppercase">
+          <div className="border border-border p-5 sm:p-8">
+            <h2 className="font-display text-base sm:text-lg tracking-widest text-foreground mb-4 sm:mb-6 text-center uppercase">
               {isLogin ? "Sign In" : "Create Account"}
             </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div>
                 <Label htmlFor="email" className="text-xs font-display uppercase tracking-widest">
                   Email
@@ -102,7 +102,7 @@ export default function Auth() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 bg-background border-border font-mono"
+                  className="mt-1 bg-background border-border font-mono text-sm"
                   placeholder="operator@example.com"
                   required
                 />
@@ -117,7 +117,7 @@ export default function Auth() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 bg-background border-border font-mono"
+                  className="mt-1 bg-background border-border font-mono text-sm"
                   placeholder="••••••••"
                   required
                 />
@@ -126,17 +126,17 @@ export default function Auth() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full btn-hot mt-6"
+                className="w-full btn-hot mt-4 sm:mt-6"
               >
                 {isLoading ? "Processing..." : isLogin ? "Sign In" : "Create Account"}
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-4 sm:mt-6 text-center">
               <button
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-foreground font-body underline underline-offset-4 transition-colors"
+                className="text-xs sm:text-sm text-muted-foreground hover:text-foreground font-body underline underline-offset-4 transition-colors"
               >
                 {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
               </button>
