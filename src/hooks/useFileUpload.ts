@@ -57,6 +57,7 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
   }, [toast]);
 
   const processFile = useCallback(async (file: File) => {
+    console.log("Processing file:", file.name, file.type, file.size);
     if (!validateFile(file)) return;
 
     setIsUploading(true);
@@ -64,6 +65,7 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log("Session retrieved:", !!session);
       if (!session) {
         toast({
           title: "Authentication required",
@@ -77,23 +79,27 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-file`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: formData,
-        }
-      );
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-file`;
+      console.log("Calling edge function:", url);
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
+
+      console.log("Response status:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Error response:", errorData);
         throw new Error(errorData.error || "Failed to parse file");
       }
 
       const data = await response.json();
+      console.log("Success, extracted chars:", data.characterCount);
       onTextExtracted(data.text, file.name, data.characterCount);
       
       toast({
