@@ -27,6 +27,7 @@ interface UseFileUploadOptions {
 export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -61,6 +62,7 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
     if (!validateFile(file)) return;
 
     setIsUploading(true);
+    setUploadProgress(0);
     setUploadedFile(file);
 
     try {
@@ -81,30 +83,54 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
 
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-file`;
       console.log("Calling edge function:", url);
-      
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: formData,
+
+      // Use XMLHttpRequest for progress tracking
+      const response = await new Promise<{ ok: boolean; data: any }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(percent);
+            console.log("Upload progress:", percent + "%");
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve({ ok: xhr.status >= 200 && xhr.status < 300, data });
+          } catch {
+            reject(new Error("Invalid response from server"));
+          }
+        });
+
+        xhr.addEventListener("error", () => {
+          reject(new Error("Network error during upload"));
+        });
+
+        xhr.addEventListener("abort", () => {
+          reject(new Error("Upload aborted"));
+        });
+
+        xhr.open("POST", url);
+        xhr.setRequestHeader("Authorization", `Bearer ${session.access_token}`);
+        xhr.send(formData);
       });
 
-      console.log("Response status:", response.status);
+      console.log("Response status:", response.ok);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error response:", errorData);
-        throw new Error(errorData.error || "Failed to parse file");
+        console.error("Error response:", response.data);
+        throw new Error(response.data?.error || "Failed to parse file");
       }
 
-      const data = await response.json();
-      console.log("Success, extracted chars:", data.characterCount);
-      onTextExtracted(data.text, file.name, data.characterCount);
+      console.log("Success, extracted chars:", response.data.characterCount);
+      onTextExtracted(response.data.text, file.name, response.data.characterCount);
       
       toast({
         title: "File processed",
-        description: `Extracted ${data.characterCount.toLocaleString()} characters from ${file.name}`,
+        description: `Extracted ${response.data.characterCount.toLocaleString()} characters from ${file.name}`,
       });
     } catch (error) {
       console.error("File upload error:", error);
@@ -116,6 +142,7 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
       setUploadedFile(null);
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -150,6 +177,7 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
 
   const clearFile = useCallback(() => {
     setUploadedFile(null);
+    setUploadProgress(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -158,6 +186,7 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
   return {
     uploadedFile,
     isUploading,
+    uploadProgress,
     isDragOver,
     fileInputRef,
     handleFileSelect,
