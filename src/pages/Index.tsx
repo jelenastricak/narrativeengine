@@ -11,7 +11,8 @@ import { Helmet } from "react-helmet-async";
 import { useNarrativeAnalysis } from "@/hooks/useNarrativeAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
-import { LogOut, History } from "lucide-react";
+import { LogOut, History, Download, FileJson } from "lucide-react";
+import { exportToJSON, exportToPDF } from "@/utils/exportAnalysis";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -180,6 +181,22 @@ const Index = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => model && exportToJSON(model)}
+                    className="btn-tactical flex items-center gap-2"
+                    title="Export as JSON"
+                  >
+                    <FileJson className="w-4 h-4" />
+                    JSON
+                  </button>
+                  <button
+                    onClick={() => model && exportToPDF(model)}
+                    className="btn-tactical flex items-center gap-2"
+                    title="Export as PDF"
+                  >
+                    <Download className="w-4 h-4" />
+                    PDF
+                  </button>
                   <button 
                     onClick={handleNewAnalysis}
                     className="btn-tactical"
