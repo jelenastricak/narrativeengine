@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import { Upload, Plus, X, Loader2 } from "lucide-react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 
@@ -15,6 +16,7 @@ export function IncrementalUpdateInput({ onSubmit, onCancel, isLoading }: Increm
   const {
     uploadedFile,
     isUploading,
+    uploadProgress,
     isDragOver,
     fileInputRef,
     handleFileSelect,
@@ -70,6 +72,23 @@ export function IncrementalUpdateInput({ onSubmit, onCancel, isLoading }: Increm
           New information will be merged with the existing narrative model. Entities, arcs, and conflicts will be updated or added based on the new data.
         </p>
       </div>
+
+      {/* Upload Progress */}
+      {isUploading && (
+        <div className="px-4 py-2 border-b border-border bg-muted/30">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <Progress value={uploadProgress} className="h-2" />
+            </div>
+            <span className="text-xs font-mono text-muted-foreground w-12 text-right">
+              {uploadProgress}%
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {uploadProgress < 100 ? "Uploading..." : "Processing file..."}
+          </p>
+        </div>
+      )}
       
       {/* Input Area */}
       <div className="p-4 relative">
@@ -110,7 +129,7 @@ export function IncrementalUpdateInput({ onSubmit, onCancel, isLoading }: Increm
             ) : (
               <Upload className="w-4 h-4" />
             )}
-            {isUploading ? "Processing..." : "Upload File"}
+            {isUploading ? `Uploading ${uploadProgress}%` : "Upload File"}
           </label>
         </div>
         
