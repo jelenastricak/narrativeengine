@@ -1,4 +1,5 @@
-import { Activity, Database, Settings } from "lucide-react";
+import { Database, Settings } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 interface HeaderProps {
   hasModel: boolean;
@@ -11,9 +12,7 @@ export function Header({ hasModel }: HeaderProps) {
         <div className="flex items-center justify-between">
           {/* Logo & Title */}
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 border border-foreground flex items-center justify-center">
-              <Activity className="w-5 h-5 text-foreground" />
-            </div>
+            <img src={logo} alt="Narrative Engine Logo" className="w-10 h-10 invert" />
             <div>
               <h1 className="font-display text-xl tracking-[0.2em] text-foreground">
                 THE NARRATIVE ENGINE
