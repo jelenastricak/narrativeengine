@@ -82,9 +82,12 @@ const Index = () => {
     setIsAnalyzing(false);
     if (result) {
       setModel(result);
-      // Save to history
+      // Save to history and capture ID
       if (user) {
-        await saveAnalysis(text, result, user.id);
+        const analysisId = await saveAnalysis(text, result, user.id);
+        if (analysisId) {
+          setCurrentAnalysisId(analysisId);
+        }
       }
     } else {
       setShowInput(true);
@@ -100,9 +103,12 @@ const Index = () => {
     setIsAnalyzing(false);
     if (result) {
       setModel(result);
-      // Save merged model to history
+      // Save merged model to history and capture ID
       if (user) {
-        await saveAnalysis(`[Incremental Update]\n${text}`, result, user.id);
+        const analysisId = await saveAnalysis(`[Incremental Update]\n${text}`, result, user.id);
+        if (analysisId) {
+          setCurrentAnalysisId(analysisId);
+        }
       }
     }
   };
