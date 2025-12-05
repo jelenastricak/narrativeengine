@@ -1,19 +1,59 @@
-import { useEffect } from "react";
-import { Clock, Trash2, Users, GitBranch, Flame } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Clock, Trash2, Users, GitBranch, Flame, CheckSquare, Square, TrendingUp } from "lucide-react";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { NarrativeModel } from "@/types/narrative";
 import { format } from "date-fns";
 
-interface AnalysisHistoryProps {
-  onLoadAnalysis: (model: NarrativeModel) => void;
+interface SavedAnalysis {
+  id: string;
+  input_text: string;
+  analysis_result: NarrativeModel;
+  created_at: string;
 }
 
-export function AnalysisHistory({ onLoadAnalysis }: AnalysisHistoryProps) {
+interface AnalysisHistoryProps {
+  onLoadAnalysis: (model: NarrativeModel) => void;
+  onCompare?: (older: SavedAnalysis, newer: SavedAnalysis) => void;
+}
+
+export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryProps) {
   const { analyses, isLoading, fetchAnalyses, deleteAnalysis } = useAnalysisHistory();
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchAnalyses();
   }, []);
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(i => i !== id);
+      }
+      if (prev.length >= 2) {
+        return [prev[1], id];
+      }
+      return [...prev, id];
+    });
+  };
+
+  const handleCompare = () => {
+    if (selectedIds.length !== 2 || !onCompare) return;
+    
+    const selected = analyses.filter(a => selectedIds.includes(a.id));
+    const sorted = selected.sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    
+    onCompare(sorted[0] as SavedAnalysis, sorted[1] as SavedAnalysis);
+    setCompareMode(false);
+    setSelectedIds([]);
+  };
+
+  const handleCancelCompare = () => {
+    setCompareMode(false);
+    setSelectedIds([]);
+  };
 
   if (isLoading) {
     return (
@@ -40,54 +80,110 @@ export function AnalysisHistory({ onLoadAnalysis }: AnalysisHistoryProps) {
 
   return (
     <div className="border border-border">
-      <div className="border-b border-border px-4 py-3">
+      <div className="border-b border-border px-4 py-3 flex items-center justify-between">
         <h3 className="font-display text-sm uppercase tracking-widest text-foreground">
           Analysis History
         </h3>
+        {onCompare && (
+          <div className="flex items-center gap-2">
+            {compareMode ? (
+              <>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {selectedIds.length}/2 selected
+                </span>
+                <button
+                  onClick={handleCompare}
+                  disabled={selectedIds.length !== 2}
+                  className="btn-hot text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Compare
+                </button>
+                <button
+                  onClick={handleCancelCompare}
+                  className="btn-tactical text-xs"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setCompareMode(true)}
+                disabled={analyses.length < 2}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-mono transition-colors disabled:opacity-50"
+              >
+                <TrendingUp className="w-3 h-3" />
+                Compare
+              </button>
+            )}
+          </div>
+        )}
       </div>
       <div className="divide-y divide-border max-h-96 overflow-y-auto">
-        {analyses.map((analysis) => (
-          <div
-            key={analysis.id}
-            className="p-4 hover:bg-muted/20 transition-colors group"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <button
-                onClick={() => onLoadAnalysis(analysis.analysis_result)}
-                className="flex-1 text-left"
-              >
-                <p className="text-xs text-muted-foreground font-mono mb-1">
-                  {format(new Date(analysis.created_at), "MMM d, yyyy HH:mm")}
-                </p>
-                <p className="text-sm text-foreground font-body line-clamp-2 mb-2">
-                  {analysis.input_text.substring(0, 150)}
-                  {analysis.input_text.length > 150 && "..."}
-                </p>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {analysis.analysis_result.entities?.length || 0}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <GitBranch className="w-3 h-3" />
-                    {analysis.analysis_result.current_arcs?.length || 0}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Flame className="w-3 h-3" />
-                    {analysis.analysis_result.conflicts?.length || 0}
-                  </span>
-                </div>
-              </button>
-              <button
-                onClick={() => deleteAnalysis(analysis.id)}
-                className="p-2 text-muted-foreground hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Delete analysis"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+        {analyses.map((analysis) => {
+          const isSelected = selectedIds.includes(analysis.id);
+          
+          return (
+            <div
+              key={analysis.id}
+              className={`p-4 transition-colors group ${
+                compareMode 
+                  ? isSelected 
+                    ? 'bg-accent/10' 
+                    : 'hover:bg-muted/20 cursor-pointer'
+                  : 'hover:bg-muted/20'
+              }`}
+              onClick={compareMode ? () => handleToggleSelect(analysis.id) : undefined}
+            >
+              <div className="flex items-start justify-between gap-4">
+                {compareMode && (
+                  <div className="pt-1">
+                    {isSelected ? (
+                      <CheckSquare className="w-4 h-4 text-accent" />
+                    ) : (
+                      <Square className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                )}
+                <button
+                  onClick={compareMode ? undefined : () => onLoadAnalysis(analysis.analysis_result)}
+                  className="flex-1 text-left"
+                  disabled={compareMode}
+                >
+                  <p className="text-xs text-muted-foreground font-mono mb-1">
+                    {format(new Date(analysis.created_at), "MMM d, yyyy HH:mm")}
+                  </p>
+                  <p className="text-sm text-foreground font-body line-clamp-2 mb-2">
+                    {analysis.input_text.substring(0, 150)}
+                    {analysis.input_text.length > 150 && "..."}
+                  </p>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3 h-3" />
+                      {analysis.analysis_result.entities?.length || 0}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <GitBranch className="w-3 h-3" />
+                      {analysis.analysis_result.current_arcs?.length || 0}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Flame className="w-3 h-3" />
+                      {analysis.analysis_result.conflicts?.length || 0}
+                    </span>
+                  </div>
+                </button>
+                {!compareMode && (
+                  <button
+                    onClick={() => deleteAnalysis(analysis.id)}
+                    className="p-2 text-muted-foreground hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Delete analysis"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
