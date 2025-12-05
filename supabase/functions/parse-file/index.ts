@@ -1,10 +1,55 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import JSZip from "https://esm.sh/jszip@3.10.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Parse DOCX file (ZIP with XML inside)
+async function parseDocx(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  
+  // DOCX stores main content in word/document.xml
+  const documentXml = zip.file("word/document.xml");
+  if (!documentXml) {
+    throw new Error("Invalid DOCX file: missing document.xml");
+  }
+  
+  const xmlContent = await documentXml.async("text");
+  
+  // Extract text from XML, preserving paragraph breaks
+  // Match text content within <w:t> tags
+  const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+  const paragraphBreaks = xmlContent.match(/<\/w:p>/g) || [];
+  
+  // Build text with paragraph awareness
+  let result = "";
+  let lastIndex = 0;
+  
+  // Simple extraction: get all text content
+  const allText: string[] = [];
+  let currentParagraph = "";
+  
+  // Split by paragraph tags and extract text
+  const paragraphs = xmlContent.split(/<\/w:p>/);
+  
+  for (const para of paragraphs) {
+    const texts = para.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+    if (texts.length > 0) {
+      const paraText = texts
+        .map(t => t.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, "$1"))
+        .join("");
+      if (paraText.trim()) {
+        allText.push(paraText.trim());
+      }
+    }
+  }
+  
+  return allText.join("\n\n");
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -28,7 +73,6 @@ serve(async (req) => {
     console.log("Supabase URL configured:", !!supabaseUrl);
     console.log("Service role key configured:", !!serviceRoleKey);
 
-    // Extract the JWT token from the Authorization header
     const token = authHeader.replace("Bearer ", "");
     console.log("Token extracted, length:", token.length);
 
@@ -37,7 +81,6 @@ serve(async (req) => {
       serviceRoleKey ?? ""
     );
 
-    // Pass the token directly to getUser()
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     console.log("Auth result - user:", !!user, "error:", authError?.message);
     
@@ -69,11 +112,9 @@ serve(async (req) => {
 
     // Handle different file types
     if (fileType === "text/plain" || fileName.endsWith(".txt") || fileName.endsWith(".md")) {
-      // Plain text files
       extractedText = await file.text();
       console.log("Extracted text from plain text file");
     } else if (fileType === "application/json" || fileName.endsWith(".json")) {
-      // JSON files
       const jsonContent = await file.text();
       try {
         const parsed = JSON.parse(jsonContent);
@@ -83,27 +124,32 @@ serve(async (req) => {
       }
       console.log("Extracted text from JSON file");
     } else if (fileType === "text/csv" || fileName.endsWith(".csv")) {
-      // CSV files
       extractedText = await file.text();
       console.log("Extracted text from CSV file");
     } else if (fileType === "text/html" || fileName.endsWith(".html") || fileName.endsWith(".htm")) {
-      // HTML files - strip tags
       const htmlContent = await file.text();
       extractedText = htmlContent.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
       console.log("Extracted text from HTML file");
     } else if (fileType === "application/xml" || fileType === "text/xml" || fileName.endsWith(".xml")) {
-      // XML files
       extractedText = await file.text();
       console.log("Extracted text from XML file");
     } else if (
-      fileType === "application/pdf" ||
       fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-      fileType === "application/msword" ||
-      fileName.endsWith(".pdf") ||
-      fileName.endsWith(".docx") ||
-      fileName.endsWith(".doc")
+      fileName.endsWith(".docx")
     ) {
-      // For PDF and DOCX, we'll use Lovable AI to extract text
+      // Parse DOCX natively using JSZip
+      try {
+        extractedText = await parseDocx(file);
+        console.log("Extracted text from DOCX file");
+      } catch (docxError) {
+        console.error("DOCX parsing error:", docxError);
+        return new Response(JSON.stringify({ error: "Failed to parse DOCX file" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
+      // For PDF, use Lovable AI to extract text
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) {
         return new Response(JSON.stringify({ error: "AI service not configured" }), {
@@ -112,7 +158,6 @@ serve(async (req) => {
         });
       }
 
-      // Convert file to base64 using chunked approach to avoid stack overflow
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       let binaryString = "";
@@ -124,7 +169,6 @@ serve(async (req) => {
       const base64 = btoa(binaryString);
       const dataUrl = `data:${fileType};base64,${base64}`;
 
-      // Use AI to extract text from the document
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -154,7 +198,7 @@ serve(async (req) => {
       if (!aiResponse.ok) {
         const errorText = await aiResponse.text();
         console.error("AI extraction failed:", errorText);
-        return new Response(JSON.stringify({ error: "Failed to extract text from document" }), {
+        return new Response(JSON.stringify({ error: "Failed to extract text from PDF" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -162,7 +206,18 @@ serve(async (req) => {
 
       const aiData = await aiResponse.json();
       extractedText = aiData.choices?.[0]?.message?.content || "";
-      console.log("Extracted text from document using AI");
+      console.log("Extracted text from PDF using AI");
+    } else if (fileType === "application/msword" || fileName.endsWith(".doc")) {
+      // Old .doc format is not supported
+      return new Response(
+        JSON.stringify({
+          error: "Old .doc format not supported. Please convert to .docx",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     } else {
       // Unsupported file type - try to read as text
       try {
