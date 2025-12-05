@@ -89,13 +89,43 @@ You MUST respond with valid JSON matching this exact schema:
   "narrative_summary": "string"
 }`;
 
+const MERGE_SYSTEM_PROMPT = `You are a strategic narrative intelligence analyst. You have an EXISTING narrative model, and you're receiving NEW information to MERGE into it.
+
+Your job is to:
+1. PRESERVE existing entities, arcs, conflicts, etc. that are still relevant
+2. UPDATE existing elements with new information (e.g., update entity goals, arc stages, add new evidence)
+3. ADD new entities, arcs, conflicts, opportunities, risks, and scenarios from the new text
+4. REMOVE or mark as resolved any elements that the new information contradicts or resolves
+5. UPDATE the narrative_summary to reflect the merged understanding
+
+MERGE RULES:
+- If the same entity appears in both, merge their attributes (combine goals, update relationships)
+- If an arc has progressed, update its stage and add new evidence
+- If a conflict is resolved by new information, remove it or mark resolution
+- Add new elements that weren't in the original model
+- Update recommended_actions based on the merged state
+
+Be analytical, tactical, and precise. Only include what is supported by evidence.
+
+You MUST respond with valid JSON matching this exact schema:
+{
+  "entities": [...],
+  "current_arcs": [...],
+  "conflicts": [...],
+  "opportunities": [...],
+  "risks": [...],
+  "future_scenarios": [...],
+  "recommended_actions": [...],
+  "narrative_summary": "string"
+}`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { text } = await req.json();
+    const { text, existingModel } = await req.json();
     
     if (!text || typeof text !== 'string') {
       return new Response(
@@ -109,7 +139,25 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log('Analyzing narrative for text of length:', text.length);
+    const isIncremental = !!existingModel;
+    console.log(`Analyzing narrative (incremental: ${isIncremental}) for text of length: ${text.length}`);
+
+    let userPrompt: string;
+    let systemPrompt: string;
+
+    if (isIncremental) {
+      systemPrompt = MERGE_SYSTEM_PROMPT;
+      userPrompt = `EXISTING NARRATIVE MODEL:
+${JSON.stringify(existingModel, null, 2)}
+
+NEW INFORMATION TO MERGE:
+${text}
+
+Analyze the new information and merge it with the existing model. Return the complete merged narrative model.`;
+    } else {
+      systemPrompt = SYSTEM_PROMPT;
+      userPrompt = `Analyze the following text and extract a structured narrative model:\n\n${text}`;
+    }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -120,8 +168,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `Analyze the following text and extract a structured narrative model:\n\n${text}` }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
       }),

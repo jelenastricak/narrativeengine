@@ -5,13 +5,14 @@ import { NarrativeInput } from "@/components/narrative/NarrativeInput";
 import { NarrativeDashboard } from "@/components/narrative/NarrativeDashboard";
 import { NarrativeLoadingSkeleton } from "@/components/narrative/NarrativeLoadingSkeleton";
 import { AnalysisHistory } from "@/components/narrative/AnalysisHistory";
+import { IncrementalUpdateInput } from "@/components/narrative/IncrementalUpdateInput";
 import { mockNarrative } from "@/data/mockNarrative";
 import { NarrativeModel } from "@/types/narrative";
 import { Helmet } from "react-helmet-async";
 import { useNarrativeAnalysis } from "@/hooks/useNarrativeAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
-import { LogOut, History, Download, FileJson } from "lucide-react";
+import { LogOut, History, Download, FileJson, Plus } from "lucide-react";
 import { exportToJSON, exportToPDF } from "@/utils/exportAnalysis";
 
 const Index = () => {
@@ -20,6 +21,7 @@ const Index = () => {
   const [model, setModel] = useState<NarrativeModel | null>(null);
   const [showInput, setShowInput] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+  const [showIncrementalInput, setShowIncrementalInput] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [lastInputText, setLastInputText] = useState("");
   const { analyzeNarrative, isLoading } = useNarrativeAnalysis();
@@ -44,6 +46,7 @@ const Index = () => {
   const handleAnalyze = async (text: string) => {
     setShowInput(false);
     setShowHistory(false);
+    setShowIncrementalInput(false);
     setIsAnalyzing(true);
     setLastInputText(text);
     const result = await analyzeNarrative(text);
@@ -58,16 +61,34 @@ const Index = () => {
       setShowInput(true);
     }
   };
+
+  const handleIncrementalUpdate = async (text: string) => {
+    if (!model) return;
+    
+    setShowIncrementalInput(false);
+    setIsAnalyzing(true);
+    const result = await analyzeNarrative(text, model);
+    setIsAnalyzing(false);
+    if (result) {
+      setModel(result);
+      // Save merged model to history
+      if (user) {
+        await saveAnalysis(`[Incremental Update]\n${text}`, result, user.id);
+      }
+    }
+  };
   
   const handleNewAnalysis = () => {
     setShowInput(true);
     setShowHistory(false);
+    setShowIncrementalInput(false);
   };
 
   const handleLoadFromHistory = (loadedModel: NarrativeModel) => {
     setModel(loadedModel);
     setShowInput(false);
     setShowHistory(false);
+    setShowIncrementalInput(false);
   };
 
   const handleSignOut = async () => {
@@ -203,11 +224,25 @@ const Index = () => {
                   >
                     New Analysis
                   </button>
-                  <button className="btn-hot">
-                    Update Model
+                  <button 
+                    onClick={() => setShowIncrementalInput(true)}
+                    className="btn-hot flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Updates
                   </button>
                 </div>
               </div>
+              
+              {showIncrementalInput && (
+                <div className="mb-8">
+                  <IncrementalUpdateInput 
+                    onSubmit={handleIncrementalUpdate}
+                    onCancel={() => setShowIncrementalInput(false)}
+                    isLoading={isLoading}
+                  />
+                </div>
+              )}
               
               {model && <NarrativeDashboard model={model} />}
             </>
