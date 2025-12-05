@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/narrative/Header";
 import { NarrativeInput } from "@/components/narrative/NarrativeInput";
 import { NarrativeDashboard } from "@/components/narrative/NarrativeDashboard";
+import { NarrativeLoadingSkeleton } from "@/components/narrative/NarrativeLoadingSkeleton";
 import { mockNarrative } from "@/data/mockNarrative";
 import { NarrativeModel } from "@/types/narrative";
 import { Helmet } from "react-helmet-async";
@@ -12,6 +13,7 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const [model, setModel] = useState<NarrativeModel | null>(null);
   const [showInput, setShowInput] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { analyzeNarrative, isLoading } = useNarrativeAnalysis();
   
   // Auto-load demo if URL param present
@@ -23,10 +25,14 @@ const Index = () => {
   }, [searchParams]);
   
   const handleAnalyze = async (text: string) => {
+    setShowInput(false);
+    setIsAnalyzing(true);
     const result = await analyzeNarrative(text);
+    setIsAnalyzing(false);
     if (result) {
       setModel(result);
-      setShowInput(false);
+    } else {
+      setShowInput(true);
     }
   };
   
@@ -69,6 +75,8 @@ const Index = () => {
                 </button>
               </div>
             </div>
+          ) : isAnalyzing ? (
+            <NarrativeLoadingSkeleton />
           ) : (
             <>
               {/* Analysis Controls */}
