@@ -1,4 +1,3 @@
-import jsPDF from "jspdf";
 import { NarrativeModel } from "@/types/narrative";
 
 export function exportToJSON(model: NarrativeModel, filename = "narrative-analysis") {
@@ -15,7 +14,10 @@ export function exportToJSON(model: NarrativeModel, filename = "narrative-analys
   URL.revokeObjectURL(url);
 }
 
-export function exportToPDF(model: NarrativeModel, filename = "narrative-analysis") {
+export async function exportToPDF(model: NarrativeModel, filename = "narrative-analysis") {
+  // Dynamic import to prevent blocking initial render
+  const { default: jsPDF } = await import("jspdf");
+  
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
