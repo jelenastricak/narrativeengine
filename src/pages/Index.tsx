@@ -15,7 +15,18 @@ import { useNarrativeAnalysis } from "@/hooks/useNarrativeAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { usePresence } from "@/hooks/usePresence";
-import { LogOut, History, Download, FileJson, Plus } from "lucide-react";
+import { LogOut, History, Download, FileJson, Plus, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { exportToJSON, exportToPDF } from "@/utils/exportAnalysis";
 
 interface ComparisonItem {
@@ -39,7 +50,7 @@ const Index = () => {
   const [lastInputText, setLastInputText] = useState("");
   const { analyzeNarrative, isLoading } = useNarrativeAnalysis();
   const { user, isLoading: authLoading, signOut } = useAuth();
-  const { saveAnalysis } = useAnalysisHistory();
+  const { saveAnalysis, deleteAnalysis } = useAnalysisHistory();
   const { presence } = usePresence(
     currentAnalysisId,
     user?.id || null,
@@ -128,6 +139,17 @@ const Index = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  const handleDeleteAnalysis = async () => {
+    if (currentAnalysisId) {
+      const success = await deleteAnalysis(currentAnalysisId);
+      if (success) {
+        setModel(null);
+        setCurrentAnalysisId(null);
+        setShowInput(true);
+      }
+    }
   };
 
   if (authLoading) {
@@ -271,6 +293,33 @@ const Index = () => {
                     <Download className="w-4 h-4" />
                     PDF
                   </button>
+                  {currentAnalysisId && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button 
+                          className="btn-tactical flex items-center gap-2 text-destructive hover:bg-destructive/10"
+                          title="Delete Analysis"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-background border-border">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-display tracking-widest">DELETE ANALYSIS</AlertDialogTitle>
+                          <AlertDialogDescription className="font-body">
+                            This action cannot be undone. This will permanently delete this narrative analysis from your history.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="btn-tactical">Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteAnalysis} className="btn-hot">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                   <button 
                     onClick={handleNewAnalysis}
                     className="btn-tactical"
