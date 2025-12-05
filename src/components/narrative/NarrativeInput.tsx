@@ -48,17 +48,17 @@ export function NarrativeInput({ onSubmit, isLoading }: NarrativeInputProps) {
       onDrop={handleDrop}
     >
       {/* Header */}
-      <div className="border-b border-border px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="border-b border-border px-3 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           <FileText className="w-4 h-4 text-muted-foreground" />
-          <span className="font-display text-sm uppercase tracking-widest text-muted-foreground">
+          <span className="font-display text-xs sm:text-sm uppercase tracking-widest text-muted-foreground">
             Intelligence Input
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {uploadedFile && (
             <div className="flex items-center gap-2 px-2 py-1 bg-muted text-xs font-mono text-muted-foreground">
-              <span className="truncate max-w-32">{uploadedFile.name}</span>
+              <span className="truncate max-w-20 sm:max-w-32">{uploadedFile.name}</span>
               <button onClick={handleClearFile} className="hover:text-foreground">
                 <X className="w-3 h-3" />
               </button>
@@ -88,25 +88,25 @@ export function NarrativeInput({ onSubmit, isLoading }: NarrativeInputProps) {
       )}
       
       {/* Input Area */}
-      <div className="p-4 relative">
+      <div className="p-3 sm:p-4 relative">
         {isDragOver && (
           <div className="absolute inset-0 flex items-center justify-center bg-accent/10 border-2 border-dashed border-accent z-10">
-            <div className="text-center">
-              <Upload className="w-8 h-8 text-accent mx-auto mb-2" />
-              <p className="text-sm font-display uppercase tracking-widest text-accent">Drop file here</p>
+            <div className="text-center px-4">
+              <Upload className="w-6 sm:w-8 h-6 sm:h-8 text-accent mx-auto mb-2" />
+              <p className="text-xs sm:text-sm font-display uppercase tracking-widest text-accent">Drop file here</p>
             </div>
           </div>
         )}
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Paste notes, documents, updates, transcripts, market data, friction logs, or any strategic intelligence... (or drag & drop a file)"
-          className="min-h-[200px] bg-input border-border text-foreground placeholder:text-muted-foreground font-body text-sm resize-none focus:border-accent focus:ring-0"
+          placeholder="Paste notes, documents, updates, transcripts, market data... (or drag & drop a file)"
+          className="min-h-[150px] sm:min-h-[200px] bg-input border-border text-foreground placeholder:text-muted-foreground font-body text-sm resize-none focus:border-accent focus:ring-0"
         />
       </div>
       
       {/* Actions */}
-      <div className="border-t border-border px-4 py-3 flex items-center justify-between">
+      <div className="border-t border-border px-3 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <input
             ref={fileInputRef}
@@ -118,16 +118,16 @@ export function NarrativeInput({ onSubmit, isLoading }: NarrativeInputProps) {
           />
           <label 
             htmlFor="file-upload"
-            className={`btn-tactical flex items-center gap-2 cursor-pointer ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+            className={`btn-tactical flex items-center gap-1 sm:gap-2 cursor-pointer text-xs sm:text-sm ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
           >
             {isUploading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Upload className="w-4 h-4" />
             )}
-            {isUploading ? `Uploading ${uploadProgress}%` : "Upload File"}
+            <span className="hidden xs:inline">{isUploading ? `${uploadProgress}%` : "Upload"}</span>
           </label>
-          <span className="text-xs text-muted-foreground font-mono hidden sm:inline">
+          <span className="text-xs text-muted-foreground font-mono hidden md:inline">
             TXT, MD, JSON, CSV, PDF, DOCX
           </span>
         </div>
@@ -135,10 +135,11 @@ export function NarrativeInput({ onSubmit, isLoading }: NarrativeInputProps) {
         <button 
           onClick={handleSubmit}
           disabled={!text.trim() || isLoading || isUploading}
-          className="btn-hot flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-hot flex items-center gap-1 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
         >
           <Send className="w-4 h-4" />
-          {isLoading ? "Analyzing..." : "Analyze Narrative"}
+          <span className="hidden sm:inline">{isLoading ? "Analyzing..." : "Analyze Narrative"}</span>
+          <span className="sm:hidden">{isLoading ? "..." : "Analyze"}</span>
         </button>
       </div>
     </div>
