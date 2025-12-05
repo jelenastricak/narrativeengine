@@ -2,3 +2,6 @@ project_id = "vgosbbsajwazfpmvfqli"
 
 [functions.analyze-narrative]
 verify_jwt = false
+
+[functions.parse-file]
+verify_jwt = true
