@@ -37,14 +37,16 @@ export function useAnalysisHistory() {
     setIsLoading(false);
   };
 
-  const saveAnalysis = async (inputText: string, analysisResult: NarrativeModel, userId: string) => {
-    const { error } = await supabase
+  const saveAnalysis = async (inputText: string, analysisResult: NarrativeModel, userId: string): Promise<string | null> => {
+    const { data, error } = await supabase
       .from("narrative_analyses")
       .insert([{
         user_id: userId,
         input_text: inputText,
         analysis_result: JSON.parse(JSON.stringify(analysisResult)) as Json,
-      }]);
+      }])
+      .select('id')
+      .single();
 
     if (error) {
       toast({
@@ -52,14 +54,14 @@ export function useAnalysisHistory() {
         description: "Failed to save analysis.",
         variant: "destructive",
       });
-      return false;
+      return null;
     }
     
     toast({
       title: "Saved",
       description: "Analysis saved to history.",
     });
-    return true;
+    return data.id;
   };
 
   const deleteAnalysis = async (id: string) => {
