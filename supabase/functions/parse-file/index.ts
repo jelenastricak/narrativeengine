@@ -28,13 +28,17 @@ serve(async (req) => {
     console.log("Supabase URL configured:", !!supabaseUrl);
     console.log("Service role key configured:", !!serviceRoleKey);
 
+    // Extract the JWT token from the Authorization header
+    const token = authHeader.replace("Bearer ", "");
+    console.log("Token extracted, length:", token.length);
+
     const supabase = createClient(
       supabaseUrl ?? "",
-      serviceRoleKey ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      serviceRoleKey ?? ""
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Pass the token directly to getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     console.log("Auth result - user:", !!user, "error:", authError?.message);
     
     if (authError || !user) {
