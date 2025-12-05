@@ -9,14 +9,14 @@ import { AuthProvider } from "@/hooks/useAuth";
 
 const queryClient = new QueryClient();
 
-// Lazy load pages for better performance and to prevent render blocking
+// Lazy load pages for route-based code splitting
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const LoadingFallback = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="animate-pulse text-muted-foreground font-mono">
+    <div className="animate-pulse text-muted-foreground font-mono tracking-widest">
       INITIALIZING...
     </div>
   </div>
