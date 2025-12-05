@@ -6,9 +6,11 @@ import type { Json } from "@/integrations/supabase/types";
 
 interface SavedAnalysis {
   id: string;
+  user_id: string;
   input_text: string;
   analysis_result: NarrativeModel;
   created_at: string;
+  is_shared: boolean;
 }
 
 export function useAnalysisHistory() {
