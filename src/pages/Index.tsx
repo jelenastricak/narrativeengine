@@ -6,12 +6,13 @@ import { NarrativeDashboard } from "@/components/narrative/NarrativeDashboard";
 import { mockNarrative } from "@/data/mockNarrative";
 import { NarrativeModel } from "@/types/narrative";
 import { Helmet } from "react-helmet-async";
+import { useNarrativeAnalysis } from "@/hooks/useNarrativeAnalysis";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
   const [model, setModel] = useState<NarrativeModel | null>(null);
   const [showInput, setShowInput] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const { analyzeNarrative, isLoading } = useNarrativeAnalysis();
   
   // Auto-load demo if URL param present
   useEffect(() => {
@@ -22,13 +23,11 @@ const Index = () => {
   }, [searchParams]);
   
   const handleAnalyze = async (text: string) => {
-    setIsLoading(true);
-    // Simulate analysis delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    // For demo, use mock data
-    setModel(mockNarrative);
-    setShowInput(false);
-    setIsLoading(false);
+    const result = await analyzeNarrative(text);
+    if (result) {
+      setModel(result);
+      setShowInput(false);
+    }
   };
   
   const handleNewAnalysis = () => {
