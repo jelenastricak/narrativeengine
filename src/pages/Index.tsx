@@ -7,12 +7,14 @@ import { NarrativeLoadingSkeleton } from "@/components/narrative/NarrativeLoadin
 import { AnalysisHistory } from "@/components/narrative/AnalysisHistory";
 import { IncrementalUpdateInput } from "@/components/narrative/IncrementalUpdateInput";
 import { ModelComparison } from "@/components/narrative/ModelComparison";
+import { PresenceIndicator } from "@/components/narrative/PresenceIndicator";
 import { mockNarrative } from "@/data/mockNarrative";
 import { NarrativeModel } from "@/types/narrative";
 import { Helmet } from "react-helmet-async";
 import { useNarrativeAnalysis } from "@/hooks/useNarrativeAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
+import { usePresence } from "@/hooks/usePresence";
 import { LogOut, History, Download, FileJson, Plus } from "lucide-react";
 import { exportToJSON, exportToPDF } from "@/utils/exportAnalysis";
 
@@ -27,6 +29,7 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [model, setModel] = useState<NarrativeModel | null>(null);
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const [showInput, setShowInput] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showIncrementalInput, setShowIncrementalInput] = useState(false);
@@ -37,6 +40,11 @@ const Index = () => {
   const { analyzeNarrative, isLoading } = useNarrativeAnalysis();
   const { user, isLoading: authLoading, signOut } = useAuth();
   const { saveAnalysis } = useAnalysisHistory();
+  const { presence } = usePresence(
+    currentAnalysisId,
+    user?.id || null,
+    user?.email || null
+  );
   
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -92,10 +100,12 @@ const Index = () => {
     setShowInput(true);
     setShowHistory(false);
     setShowIncrementalInput(false);
+    setCurrentAnalysisId(null);
   };
 
-  const handleLoadFromHistory = (loadedModel: NarrativeModel) => {
+  const handleLoadFromHistory = (loadedModel: NarrativeModel, analysisId?: string) => {
     setModel(loadedModel);
+    setCurrentAnalysisId(analysisId || null);
     setShowInput(false);
     setShowHistory(false);
     setShowIncrementalInput(false);
@@ -227,13 +237,22 @@ const Index = () => {
             <>
               {/* Analysis Controls */}
               <div className="flex items-center justify-between mb-8 border-b border-border pb-4">
-                <div>
-                  <span className="text-xs font-display uppercase tracking-widest text-muted-foreground">
-                    Active Narrative Model
-                  </span>
-                  <p className="text-sm text-foreground font-mono">
-                    {model?.entities.length} entities • {model?.current_arcs.length} arcs • {model?.conflicts.length} conflicts
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div>
+                    <span className="text-xs font-display uppercase tracking-widest text-muted-foreground">
+                      Active Narrative Model
+                    </span>
+                    <p className="text-sm text-foreground font-mono">
+                      {model?.entities.length} entities • {model?.current_arcs.length} arcs • {model?.conflicts.length} conflicts
+                    </p>
+                  </div>
+                  {currentAnalysisId && user && (
+                    <PresenceIndicator
+                      users={presence.users}
+                      currentUserId={user.id}
+                      isConnected={presence.isConnected}
+                    />
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <button

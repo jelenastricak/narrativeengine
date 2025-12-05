@@ -1,23 +1,28 @@
 import { useEffect, useState } from "react";
-import { Clock, Trash2, Users, GitBranch, Flame, CheckSquare, Square, TrendingUp } from "lucide-react";
+import { Clock, Trash2, Users, GitBranch, Flame, CheckSquare, Square, TrendingUp, Globe } from "lucide-react";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
+import { useAuth } from "@/hooks/useAuth";
 import { NarrativeModel } from "@/types/narrative";
 import { format } from "date-fns";
+import { ShareToggle } from "./ShareToggle";
 
 interface SavedAnalysis {
   id: string;
+  user_id: string;
   input_text: string;
   analysis_result: NarrativeModel;
   created_at: string;
+  is_shared: boolean;
 }
 
 interface AnalysisHistoryProps {
-  onLoadAnalysis: (model: NarrativeModel) => void;
+  onLoadAnalysis: (model: NarrativeModel, analysisId?: string) => void;
   onCompare?: (older: SavedAnalysis, newer: SavedAnalysis) => void;
 }
 
 export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryProps) {
   const { analyses, isLoading, fetchAnalyses, deleteAnalysis } = useAnalysisHistory();
+  const { user } = useAuth();
   const [compareMode, setCompareMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -134,7 +139,7 @@ export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryPr
               }`}
               onClick={compareMode ? () => handleToggleSelect(analysis.id) : undefined}
             >
-              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-4">
                 {compareMode && (
                   <div className="pt-1">
                     {isSelected ? (
@@ -145,13 +150,21 @@ export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryPr
                   </div>
                 )}
                 <button
-                  onClick={compareMode ? undefined : () => onLoadAnalysis(analysis.analysis_result)}
+                  onClick={compareMode ? undefined : () => onLoadAnalysis(analysis.analysis_result, analysis.id)}
                   className="flex-1 text-left"
                   disabled={compareMode}
                 >
-                  <p className="text-xs text-muted-foreground font-mono mb-1">
-                    {format(new Date(analysis.created_at), "MMM d, yyyy HH:mm")}
-                  </p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {format(new Date(analysis.created_at), "MMM d, yyyy HH:mm")}
+                    </p>
+                    {analysis.is_shared && analysis.user_id !== user?.id && (
+                      <span className="flex items-center gap-1 text-xs text-primary font-mono">
+                        <Globe className="w-3 h-3" />
+                        Shared
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-foreground font-body line-clamp-2 mb-2">
                     {analysis.input_text.substring(0, 150)}
                     {analysis.input_text.length > 150 && "..."}
@@ -172,13 +185,23 @@ export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryPr
                   </div>
                 </button>
                 {!compareMode && (
-                  <button
-                    onClick={() => deleteAnalysis(analysis.id)}
-                    className="p-2 text-muted-foreground hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Delete analysis"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <ShareToggle
+                      analysisId={analysis.id}
+                      isShared={analysis.is_shared}
+                      isOwner={analysis.user_id === user?.id}
+                      onShareChange={() => fetchAnalyses()}
+                    />
+                    {analysis.user_id === user?.id && (
+                      <button
+                        onClick={() => deleteAnalysis(analysis.id)}
+                        className="p-2 text-muted-foreground hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Delete analysis"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
