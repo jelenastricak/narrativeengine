@@ -58,7 +58,6 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
   }, [toast]);
 
   const processFile = useCallback(async (file: File) => {
-    console.log("Processing file:", file.name, file.type, file.size);
     if (!validateFile(file)) return;
 
     setIsUploading(true);
@@ -67,7 +66,7 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("Session retrieved:", !!session);
+      
       if (!session) {
         toast({
           title: "Authentication required",
@@ -82,17 +81,14 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
       formData.append("file", file);
 
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-file`;
-      console.log("Calling edge function:", url);
 
-      // Use XMLHttpRequest for progress tracking
-      const response = await new Promise<{ ok: boolean; data: any }>((resolve, reject) => {
+      const response = await new Promise<{ ok: boolean; data: { text: string; characterCount: number; error?: string } }>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         
         xhr.upload.addEventListener("progress", (event) => {
           if (event.lengthComputable) {
             const percent = Math.round((event.loaded / event.total) * 100);
             setUploadProgress(percent);
-            console.log("Upload progress:", percent + "%");
           }
         });
 
@@ -118,14 +114,10 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
         xhr.send(formData);
       });
 
-      console.log("Response status:", response.ok);
-
       if (!response.ok) {
-        console.error("Error response:", response.data);
         throw new Error(response.data?.error || "Failed to parse file");
       }
 
-      console.log("Success, extracted chars:", response.data.characterCount);
       onTextExtracted(response.data.text, file.name, response.data.characterCount);
       
       toast({
@@ -133,7 +125,6 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
         description: `Extracted ${response.data.characterCount.toLocaleString()} characters from ${file.name}`,
       });
     } catch (error) {
-      console.error("File upload error:", error);
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to process file",

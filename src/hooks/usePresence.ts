@@ -13,7 +13,11 @@ interface PresenceState {
   isConnected: boolean;
 }
 
-export function usePresence(analysisId: string | null, userId: string | null, userEmail: string | null) {
+export function usePresence(
+  analysisId: string | null, 
+  userId: string | null, 
+  userEmail: string | null
+) {
   const [presence, setPresence] = useState<PresenceState>({
     users: [],
     isConnected: false,
@@ -40,23 +44,29 @@ export function usePresence(analysisId: string | null, userId: string | null, us
         const users: PresenceUser[] = [];
         
         Object.keys(state).forEach((key) => {
-          const presences = state[key] as any[];
+          const presences = state[key] as unknown as Array<{
+            user_id: string;
+            email: string;
+            online_at: string;
+          }>;
           presences.forEach((p) => {
-            users.push({
-              id: p.user_id,
-              email: p.email,
-              online_at: p.online_at,
-            });
+            if (p.user_id && p.email) {
+              users.push({
+                id: p.user_id,
+                email: p.email,
+                online_at: p.online_at || new Date().toISOString(),
+              });
+            }
           });
         });
         
         setPresence({ users, isConnected: true });
       })
-      .on("presence", { event: "join" }, ({ key, newPresences }) => {
-        console.log("User joined:", key, newPresences);
+      .on("presence", { event: "join" }, () => {
+        // User joined - state will sync automatically
       })
-      .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
-        console.log("User left:", key, leftPresences);
+      .on("presence", { event: "leave" }, () => {
+        // User left - state will sync automatically
       })
       .subscribe(async (status) => {
         if (status !== "SUBSCRIBED") return;
