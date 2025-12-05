@@ -4,4 +4,4 @@ project_id = "vgosbbsajwazfpmvfqli"
 verify_jwt = false
 
 [functions.parse-file]
-verify_jwt = true
+verify_jwt = false
