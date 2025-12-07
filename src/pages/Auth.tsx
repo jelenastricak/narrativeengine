@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Helmet } from "react-helmet-async";
 import { z } from "zod";
+import { Home } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 const authSchema = z.object({
@@ -74,6 +75,15 @@ export default function Auth() {
       </Helmet>
       
       <div className="min-h-screen bg-background flex items-center justify-center px-4 sm:px-6">
+        {/* Home Button */}
+        <Link
+          to="/"
+          className="absolute top-4 left-4 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Home className="w-4 h-4" />
+          <span className="text-xs font-mono uppercase">Home</span>
+        </Link>
+
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex flex-col items-center mb-6 sm:mb-8">
