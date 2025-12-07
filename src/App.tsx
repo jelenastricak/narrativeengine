@@ -10,6 +10,7 @@ import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import Pricing from "@/pages/Pricing";
 import PaymentSuccess from "@/pages/PaymentSuccess";
+import SharedAnalysis from "@/pages/SharedAnalysis";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="/shared/:id" element={<SharedAnalysis />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
