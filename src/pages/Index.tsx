@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { usePresence } from "@/hooks/usePresence";
 import { useSubscription } from "@/hooks/useSubscription";
-import { LogOut, History, Download, FileJson, Plus, Trash2, Crown, HelpCircle } from "lucide-react";
+import { LogOut, History, Download, FileJson, Plus, Trash2, Crown, HelpCircle, Copy } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -372,20 +372,34 @@ const Index = () => {
                         <Download className="w-4 h-4" />
                         <span>Download</span>
                       </button>
-                      <div className="absolute right-0 top-full mt-1 bg-background border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[120px]">
+                      <div className="absolute right-0 top-full mt-1 bg-background border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[140px]">
+                        <button
+                          onClick={() => {
+                            if (model) {
+                              navigator.clipboard.writeText(JSON.stringify(model, null, 2));
+                              import("sonner").then(({ toast }) => {
+                                toast.success("Copied to clipboard");
+                              });
+                            }
+                          }}
+                          className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2"
+                        >
+                          <Copy className="w-3 h-3" />
+                          Copy
+                        </button>
                         <button
                           onClick={() => model && exportToJSON(model)}
                           className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2"
                         >
                           <FileJson className="w-3 h-3" />
-                          JSON
+                          JSON File
                         </button>
                         <button
                           onClick={() => model && exportToPDF(model)}
                           className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2"
                         >
                           <Download className="w-3 h-3" />
-                          PDF
+                          PDF File
                         </button>
                       </div>
                     </div>
