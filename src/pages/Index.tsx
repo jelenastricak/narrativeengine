@@ -363,22 +363,32 @@ const Index = () => {
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <button
-                      onClick={() => model && exportToJSON(model)}
-                      className="btn-tactical flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                      title="Export as JSON"
-                    >
-                      <FileJson className="w-4 h-4" />
-                      <span className="hidden sm:inline">JSON</span>
-                    </button>
-                    <button
-                      onClick={() => model && exportToPDF(model)}
-                      className="btn-tactical flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                      title="Export as PDF"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span className="hidden sm:inline">PDF</span>
-                    </button>
+                    {/* Download Dropdown */}
+                    <div className="relative group">
+                      <button
+                        className="btn-hot flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                        title="Download Analysis"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Download</span>
+                      </button>
+                      <div className="absolute right-0 top-full mt-1 bg-background border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[120px]">
+                        <button
+                          onClick={() => model && exportToJSON(model)}
+                          className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2"
+                        >
+                          <FileJson className="w-3 h-3" />
+                          JSON
+                        </button>
+                        <button
+                          onClick={() => model && exportToPDF(model)}
+                          className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2"
+                        >
+                          <Download className="w-3 h-3" />
+                          PDF
+                        </button>
+                      </div>
+                    </div>
                     {currentAnalysisId && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
