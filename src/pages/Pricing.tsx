@@ -14,13 +14,13 @@ const Pricing = () => {
   const { user } = useAuth();
   const { subscription, isLoading } = useSubscription();
 
-  const handleSubscribe = (link: string) => {
+  const handleSubscribe = (link: string, plan: "monthly" | "lifetime") => {
     // Append user email and success/cancel URLs if user is logged in
     const params = new URLSearchParams();
     if (user?.email) {
       params.set("prefilled_email", user.email);
     }
-    params.set("success_url", `${window.location.origin}/pricing?success=true`);
+    params.set("success_url", `${window.location.origin}/payment-success?plan=${plan}`);
     params.set("cancel_url", `${window.location.origin}/pricing?canceled=true`);
     
     const url = link.includes("?") 
@@ -147,7 +147,7 @@ const Pricing = () => {
                 </div>
               ) : (
                 <button
-                  onClick={() => handleSubscribe(STRIPE_MONTHLY_LINK)}
+                  onClick={() => handleSubscribe(STRIPE_MONTHLY_LINK, "monthly")}
                   disabled={isLoading}
                   className="btn-hot py-3 w-full text-sm"
                 >
@@ -194,7 +194,7 @@ const Pricing = () => {
                 </div>
               ) : (
                 <button
-                  onClick={() => handleSubscribe(STRIPE_LIFETIME_LINK)}
+                  onClick={() => handleSubscribe(STRIPE_LIFETIME_LINK, "lifetime")}
                   disabled={isLoading}
                   className="btn-tactical py-3 w-full text-sm"
                 >
