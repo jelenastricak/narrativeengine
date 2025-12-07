@@ -9,6 +9,7 @@ import { IncrementalUpdateInput } from "@/components/narrative/IncrementalUpdate
 import { ModelComparison } from "@/components/narrative/ModelComparison";
 import { PresenceIndicator } from "@/components/narrative/PresenceIndicator";
 import { UpgradeModal } from "@/components/narrative/UpgradeModal";
+import { OnboardingModal } from "@/components/narrative/OnboardingModal";
 import { mockNarrative } from "@/data/mockNarrative";
 import { NarrativeModel } from "@/types/narrative";
 import { Helmet } from "react-helmet-async";
@@ -17,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { usePresence } from "@/hooks/usePresence";
 import { useSubscription } from "@/hooks/useSubscription";
-import { LogOut, History, Download, FileJson, Plus, Trash2, Crown } from "lucide-react";
+import { LogOut, History, Download, FileJson, Plus, Trash2, Crown, HelpCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +31,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { exportToJSON, exportToPDF } from "@/utils/exportAnalysis";
+
+const ONBOARDING_KEY = "narrative-engine-onboarding-seen";
 
 interface ComparisonItem {
   id: string;
@@ -51,6 +54,7 @@ const Index = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [lastInputText, setLastInputText] = useState("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { analyzeNarrative, isLoading } = useNarrativeAnalysis();
   const { user, isLoading: authLoading, signOut } = useAuth();
   const { saveAnalysis, deleteAnalysis } = useAnalysisHistory();
@@ -75,6 +79,18 @@ const Index = () => {
       setShowInput(false);
     }
   }, [searchParams]);
+
+  // Show onboarding for new users
+  useEffect(() => {
+    if (user && !localStorage.getItem(ONBOARDING_KEY)) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
+
+  const handleCloseOnboarding = () => {
+    localStorage.setItem(ONBOARDING_KEY, "true");
+    setShowOnboarding(false);
+  };
   
   const handleAnalyze = async (text: string) => {
     // Check if user can analyze
@@ -249,6 +265,15 @@ const Index = () => {
                   </span>
                 </button>
               )}
+              {/* Help Button */}
+              <button
+                onClick={() => setShowOnboarding(true)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-mono transition-colors"
+                title="How it works"
+              >
+                <HelpCircle className="w-3 h-3" />
+                <span className="hidden sm:inline">Help</span>
+              </button>
               <button
                 onClick={handleSignOut}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-mono transition-colors"
@@ -431,6 +456,12 @@ const Index = () => {
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
+      />
+
+      {/* Onboarding Modal */}
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onClose={handleCloseOnboarding}
       />
     </>
   );
