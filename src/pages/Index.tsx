@@ -289,10 +289,13 @@ const Index = () => {
               {/* Demo Button */}
               <div className="mt-4 sm:mt-6 text-center">
                 <button 
-                  onClick={() => handleAnalyze("Demo analysis")}
+                  onClick={() => {
+                    setModel(mockNarrative);
+                    setShowInput(false);
+                  }}
                   className="text-xs sm:text-sm text-muted-foreground hover:text-foreground font-body underline underline-offset-4 transition-colors"
                 >
-                  Load demo narrative model
+                  Load demo narrative model (free preview)
                 </button>
               </div>
             </div>
