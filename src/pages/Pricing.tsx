@@ -7,7 +7,7 @@ import logo from "@/assets/logo.png";
 
 // Stripe Payment Links
 const STRIPE_MONTHLY_LINK = "https://buy.stripe.com/aFacN5eBn4pR5Dg0oY48006";
-const STRIPE_LIFETIME_LINK = "https://buy.stripe.com/YOUR_LIFETIME_LINK";
+const STRIPE_LIFETIME_LINK = "https://buy.stripe.com/dRm28r78VcWn4zcfjS48005";
 
 const Pricing = () => {
   const navigate = useNavigate();
