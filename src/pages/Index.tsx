@@ -210,22 +210,9 @@ const Index = () => {
         <div className="border-b border-border">
           <div className="container mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-4">
-              <span className="text-xs text-muted-foreground font-mono truncate max-w-[150px] sm:max-w-none">
+              <span className="text-xs text-muted-foreground font-mono truncate max-w-[120px] sm:max-w-none">
                 {user.email}
               </span>
-              {/* Subscription Status */}
-              <button
-                onClick={() => navigate("/pricing")}
-                className="flex items-center gap-1 text-xs font-mono transition-colors text-muted-foreground hover:text-foreground"
-              >
-                <Crown className="w-3 h-3" />
-                <span className="uppercase">
-                  {subscription?.plan === "lifetime" ? "Lifetime" : subscription?.plan === "monthly" ? "Pro" : "Free"}
-                </span>
-                {subscription?.plan === "free" && remainingAnalyses !== null && (
-                  <span className="text-accent">({remainingAnalyses} left)</span>
-                )}
-              </button>
               <button
                 onClick={() => setShowHistory(!showHistory)}
                 className={`flex items-center gap-1 text-xs font-mono transition-colors ${
@@ -236,13 +223,40 @@ const Index = () => {
                 <span className="hidden xs:inline">History</span>
               </button>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-mono transition-colors"
-            >
-              <LogOut className="w-3 h-3" />
-              <span className="hidden xs:inline">Sign Out</span>
-            </button>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Upgrade Button - Only show for free users */}
+              {subscription?.plan === "free" && (
+                <button
+                  onClick={() => navigate("/pricing")}
+                  className="btn-hot flex items-center gap-1.5 px-3 py-1.5 text-xs"
+                >
+                  <Crown className="w-3 h-3" />
+                  <span>Upgrade</span>
+                  {remainingAnalyses !== null && (
+                    <span className="opacity-80">({remainingAnalyses} left)</span>
+                  )}
+                </button>
+              )}
+              {/* Plan Badge for paid users */}
+              {subscription?.plan !== "free" && (
+                <button
+                  onClick={() => navigate("/pricing")}
+                  className="flex items-center gap-1 text-xs font-mono text-accent"
+                >
+                  <Crown className="w-3 h-3" />
+                  <span className="uppercase">
+                    {subscription?.plan === "lifetime" ? "Lifetime" : "Pro"}
+                  </span>
+                </button>
+              )}
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-mono transition-colors"
+              >
+                <LogOut className="w-3 h-3" />
+                <span className="hidden xs:inline">Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
         
