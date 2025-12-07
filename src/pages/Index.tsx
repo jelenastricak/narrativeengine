@@ -8,6 +8,7 @@ import { AnalysisHistory } from "@/components/narrative/AnalysisHistory";
 import { IncrementalUpdateInput } from "@/components/narrative/IncrementalUpdateInput";
 import { ModelComparison } from "@/components/narrative/ModelComparison";
 import { PresenceIndicator } from "@/components/narrative/PresenceIndicator";
+import { UpgradeModal } from "@/components/narrative/UpgradeModal";
 import { mockNarrative } from "@/data/mockNarrative";
 import { NarrativeModel } from "@/types/narrative";
 import { Helmet } from "react-helmet-async";
@@ -15,7 +16,8 @@ import { useNarrativeAnalysis } from "@/hooks/useNarrativeAnalysis";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { usePresence } from "@/hooks/usePresence";
-import { LogOut, History, Download, FileJson, Plus, Trash2 } from "lucide-react";
+import { useSubscription } from "@/hooks/useSubscription";
+import { LogOut, History, Download, FileJson, Plus, Trash2, Crown } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,9 +50,11 @@ const Index = () => {
   const [comparisonData, setComparisonData] = useState<{ older: ComparisonItem; newer: ComparisonItem } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [lastInputText, setLastInputText] = useState("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { analyzeNarrative, isLoading } = useNarrativeAnalysis();
   const { user, isLoading: authLoading, signOut } = useAuth();
   const { saveAnalysis, deleteAnalysis } = useAnalysisHistory();
+  const { subscription, canAnalyze, remainingAnalyses, incrementUsage, isLoading: subLoading } = useSubscription();
   const { presence } = usePresence(
     currentAnalysisId,
     user?.id || null,
@@ -73,6 +77,12 @@ const Index = () => {
   }, [searchParams]);
   
   const handleAnalyze = async (text: string) => {
+    // Check if user can analyze
+    if (!canAnalyze) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     setShowInput(false);
     setShowHistory(false);
     setShowIncrementalInput(false);
@@ -82,6 +92,10 @@ const Index = () => {
     setIsAnalyzing(false);
     if (result) {
       setModel(result);
+      // Increment usage for free tier
+      if (subscription?.plan === "free") {
+        await incrementUsage();
+      }
       // Save to history and capture ID
       if (user) {
         const analysisId = await saveAnalysis(text, result, user.id);
@@ -97,12 +111,22 @@ const Index = () => {
   const handleIncrementalUpdate = async (text: string) => {
     if (!model) return;
     
+    // Check if user can analyze (paid plans or still has free analyses)
+    if (!canAnalyze) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    
     setShowIncrementalInput(false);
     setIsAnalyzing(true);
     const result = await analyzeNarrative(text, model);
     setIsAnalyzing(false);
     if (result) {
       setModel(result);
+      // Increment usage for free tier
+      if (subscription?.plan === "free") {
+        await incrementUsage();
+      }
       // Save merged model to history and capture ID
       if (user) {
         const analysisId = await saveAnalysis(`[Incremental Update]\n${text}`, result, user.id);
@@ -189,6 +213,19 @@ const Index = () => {
               <span className="text-xs text-muted-foreground font-mono truncate max-w-[150px] sm:max-w-none">
                 {user.email}
               </span>
+              {/* Subscription Status */}
+              <button
+                onClick={() => navigate("/pricing")}
+                className="flex items-center gap-1 text-xs font-mono transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <Crown className="w-3 h-3" />
+                <span className="uppercase">
+                  {subscription?.plan === "lifetime" ? "Lifetime" : subscription?.plan === "monthly" ? "Pro" : "Free"}
+                </span>
+                {subscription?.plan === "free" && remainingAnalyses !== null && (
+                  <span className="text-accent">({remainingAnalyses} left)</span>
+                )}
+              </button>
               <button
                 onClick={() => setShowHistory(!showHistory)}
                 className={`flex items-center gap-1 text-xs font-mono transition-colors ${
@@ -372,6 +409,12 @@ const Index = () => {
           </div>
         </footer>
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </>
   );
 };

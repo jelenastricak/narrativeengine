@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          analyses_used: number
+          created_at: string
+          id: string
+          plan: string
+          stripe_session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analyses_used?: number
+          created_at?: string
+          id?: string
+          plan?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analyses_used?: number
+          created_at?: string
+          id?: string
+          plan?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
