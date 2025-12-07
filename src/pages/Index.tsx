@@ -18,7 +18,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { usePresence } from "@/hooks/usePresence";
 import { useSubscription } from "@/hooks/useSubscription";
-import { LogOut, History, Download, FileJson, Plus, Trash2, Crown, HelpCircle, Copy } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { LogOut, History, Download, FileJson, Plus, Trash2, Crown, HelpCircle, Copy, Link2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -373,6 +374,35 @@ const Index = () => {
                         <span>Download</span>
                       </button>
                       <div className="absolute right-0 top-full mt-1 bg-background border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[140px]">
+                        {/* Share Link - only if analysis is saved */}
+                        {currentAnalysisId && (
+                          <button
+                            onClick={async () => {
+                              // First, enable sharing
+                              const { error } = await supabase
+                                .from("narrative_analyses")
+                                .update({ is_shared: true })
+                                .eq("id", currentAnalysisId);
+                              
+                              if (error) {
+                                import("sonner").then(({ toast }) => {
+                                  toast.error("Failed to enable sharing");
+                                });
+                                return;
+                              }
+                              
+                              const shareUrl = `${window.location.origin}/shared/${currentAnalysisId}`;
+                              navigator.clipboard.writeText(shareUrl);
+                              import("sonner").then(({ toast }) => {
+                                toast.success("Share link copied to clipboard");
+                              });
+                            }}
+                            className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2 border-b border-border"
+                          >
+                            <Link2 className="w-3 h-3" />
+                            Share Link
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             if (model) {
@@ -385,7 +415,7 @@ const Index = () => {
                           className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2"
                         >
                           <Copy className="w-3 h-3" />
-                          Copy
+                          Copy JSON
                         </button>
                         <button
                           onClick={() => model && exportToJSON(model)}
