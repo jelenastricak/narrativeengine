@@ -5,8 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import logo from "@/assets/logo.png";
 
-// These will be replaced with actual Stripe Payment Links
-const STRIPE_MONTHLY_LINK = "https://buy.stripe.com/YOUR_MONTHLY_LINK";
+// Stripe Payment Links
+const STRIPE_MONTHLY_LINK = "https://buy.stripe.com/aFacN5eBn4pR5Dg0oY48006";
 const STRIPE_LIFETIME_LINK = "https://buy.stripe.com/YOUR_LIFETIME_LINK";
 
 const Pricing = () => {
