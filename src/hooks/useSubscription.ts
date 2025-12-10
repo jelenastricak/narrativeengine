@@ -22,6 +22,7 @@ interface SubscriptionState {
 }
 
 const FREE_TIER_LIMIT = 1;
+const PREMIUM_BYPASS_EMAILS = ["jstricak@gmail.com"];
 
 export function useSubscription() {
   const { user } = useAuth();
@@ -72,13 +73,15 @@ export function useSubscription() {
       }
 
       const sub = data as Subscription;
+      const isPremiumBypass = user.email && PREMIUM_BYPASS_EMAILS.includes(user.email);
       const canAnalyze =
+        isPremiumBypass ||
         sub.plan === "monthly" ||
         sub.plan === "lifetime" ||
         sub.analyses_used < FREE_TIER_LIMIT;
 
       const remainingAnalyses =
-        sub.plan === "monthly" || sub.plan === "lifetime"
+        isPremiumBypass || sub.plan === "monthly" || sub.plan === "lifetime"
           ? null
           : Math.max(0, FREE_TIER_LIMIT - sub.analyses_used);
 
