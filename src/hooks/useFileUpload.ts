@@ -98,7 +98,7 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
         });
 
         xhr.open("POST", url);
-        xhr.setRequestHeader("Authorization", `Bearer ${session.access_token}`);
+        xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
         xhr.send(formData);
       });
 

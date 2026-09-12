@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 
 const corsHeaders = {
@@ -57,43 +56,6 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    console.log("Auth header present:", !!authHeader);
-    
-    if (!authHeader) {
-      console.log("No auth header provided");
-      return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    console.log("Supabase URL configured:", !!supabaseUrl);
-    console.log("Service role key configured:", !!serviceRoleKey);
-
-    const token = authHeader.replace("Bearer ", "");
-    console.log("Token extracted, length:", token.length);
-
-    const supabase = createClient(
-      supabaseUrl ?? "",
-      serviceRoleKey ?? ""
-    );
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    console.log("Auth result - user:", !!user, "error:", authError?.message);
-    
-    if (authError || !user) {
-      console.log("Auth failed:", authError?.message || "No user");
-      return new Response(JSON.stringify({ error: "Unauthorized", details: authError?.message }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    
-    console.log("User authenticated:", user.id);
-
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
