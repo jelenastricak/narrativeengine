@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const SUPPORTED_TYPES = [
@@ -65,18 +64,6 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
     setUploadedFile(file);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to upload files.",
-          variant: "destructive",
-        });
-        setUploadedFile(null);
-        return;
-      }
-
       const formData = new FormData();
       formData.append("file", file);
 
@@ -110,7 +97,7 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
         });
 
         xhr.open("POST", url);
-        xhr.setRequestHeader("Authorization", `Bearer ${session.access_token}`);
+        xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
         xhr.send(formData);
       });
 

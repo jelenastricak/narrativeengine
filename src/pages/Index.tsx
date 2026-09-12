@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/narrative/Header";
 import { NarrativeInput } from "@/components/narrative/NarrativeInput";
 import { NarrativeDashboard } from "@/components/narrative/NarrativeDashboard";
@@ -7,19 +7,13 @@ import { NarrativeLoadingSkeleton } from "@/components/narrative/NarrativeLoadin
 import { AnalysisHistory } from "@/components/narrative/AnalysisHistory";
 import { IncrementalUpdateInput } from "@/components/narrative/IncrementalUpdateInput";
 import { ModelComparison } from "@/components/narrative/ModelComparison";
-import { PresenceIndicator } from "@/components/narrative/PresenceIndicator";
-import { UpgradeModal } from "@/components/narrative/UpgradeModal";
 import { OnboardingModal } from "@/components/narrative/OnboardingModal";
 import { mockNarrative } from "@/data/mockNarrative";
 import { NarrativeModel } from "@/types/narrative";
 import { Helmet } from "react-helmet-async";
 import { useNarrativeAnalysis } from "@/hooks/useNarrativeAnalysis";
-import { useAuth } from "@/hooks/useAuth";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
-import { usePresence } from "@/hooks/usePresence";
-import { useSubscription } from "@/hooks/useSubscription";
-import { supabase } from "@/integrations/supabase/client";
-import { LogOut, History, Download, FileJson, Plus, Trash2, Crown, HelpCircle, Copy, Link2 } from "lucide-react";
+import { History, Download, FileJson, Plus, Trash2, HelpCircle, Copy } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +38,6 @@ interface ComparisonItem {
 
 const Index = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [model, setModel] = useState<NarrativeModel | null>(null);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const [showInput, setShowInput] = useState(true);
@@ -53,25 +46,9 @@ const Index = () => {
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonData, setComparisonData] = useState<{ older: ComparisonItem; newer: ComparisonItem } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [lastInputText, setLastInputText] = useState("");
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const { analyzeNarrative, isLoading } = useNarrativeAnalysis();
-  const { user, isLoading: authLoading, signOut } = useAuth();
   const { saveAnalysis, deleteAnalysis } = useAnalysisHistory();
-  const { subscription, canAnalyze, remainingAnalyses, incrementUsage, isLoading: subLoading } = useSubscription();
-  const { presence } = usePresence(
-    currentAnalysisId,
-    user?.id || null,
-    user?.email || null
-  );
-  
-  // Redirect to auth if not logged in
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth");
-    }
-  }, [user, authLoading, navigate]);
 
   // Auto-load demo if URL param present
   useEffect(() => {
@@ -81,44 +58,30 @@ const Index = () => {
     }
   }, [searchParams]);
 
-  // Show onboarding for new users
+  // Show onboarding for first-time visitors
   useEffect(() => {
-    if (user && !localStorage.getItem(ONBOARDING_KEY)) {
+    if (!localStorage.getItem(ONBOARDING_KEY)) {
       setShowOnboarding(true);
     }
-  }, [user]);
+  }, []);
 
   const handleCloseOnboarding = () => {
     localStorage.setItem(ONBOARDING_KEY, "true");
     setShowOnboarding(false);
   };
-  
-  const handleAnalyze = async (text: string) => {
-    // Check if user can analyze
-    if (!canAnalyze) {
-      setShowUpgradeModal(true);
-      return;
-    }
 
+  const handleAnalyze = async (text: string) => {
     setShowInput(false);
     setShowHistory(false);
     setShowIncrementalInput(false);
     setIsAnalyzing(true);
-    setLastInputText(text);
     const result = await analyzeNarrative(text);
     setIsAnalyzing(false);
     if (result) {
       setModel(result);
-      // Increment usage for free tier
-      if (subscription?.plan === "free") {
-        await incrementUsage();
-      }
-      // Save to history and capture ID
-      if (user) {
-        const analysisId = await saveAnalysis(text, result, user.id);
-        if (analysisId) {
-          setCurrentAnalysisId(analysisId);
-        }
+      const analysisId = await saveAnalysis(text, result);
+      if (analysisId) {
+        setCurrentAnalysisId(analysisId);
       }
     } else {
       setShowInput(true);
@@ -127,33 +90,20 @@ const Index = () => {
 
   const handleIncrementalUpdate = async (text: string) => {
     if (!model) return;
-    
-    // Check if user can analyze (paid plans or still has free analyses)
-    if (!canAnalyze) {
-      setShowUpgradeModal(true);
-      return;
-    }
-    
+
     setShowIncrementalInput(false);
     setIsAnalyzing(true);
     const result = await analyzeNarrative(text, model);
     setIsAnalyzing(false);
     if (result) {
       setModel(result);
-      // Increment usage for free tier
-      if (subscription?.plan === "free") {
-        await incrementUsage();
-      }
-      // Save merged model to history and capture ID
-      if (user) {
-        const analysisId = await saveAnalysis(`[Incremental Update]\n${text}`, result, user.id);
-        if (analysisId) {
-          setCurrentAnalysisId(analysisId);
-        }
+      const analysisId = await saveAnalysis(`[Incremental Update]\n${text}`, result);
+      if (analysisId) {
+        setCurrentAnalysisId(analysisId);
       }
     }
   };
-  
+
   const handleNewAnalysis = () => {
     setShowInput(true);
     setShowHistory(false);
@@ -170,7 +120,10 @@ const Index = () => {
     setShowComparison(false);
   };
 
-  const handleCompare = (older: { id: string; analysis_result: NarrativeModel; created_at: string; input_text: string }, newer: { id: string; analysis_result: NarrativeModel; created_at: string; input_text: string }) => {
+  const handleCompare = (
+    older: { id: string; analysis_result: NarrativeModel; created_at: string; input_text: string },
+    newer: { id: string; analysis_result: NarrativeModel; created_at: string; input_text: string }
+  ) => {
     setComparisonData({
       older: { id: older.id, model: older.analysis_result, created_at: older.created_at, input_text: older.input_text },
       newer: { id: newer.id, model: newer.analysis_result, created_at: newer.created_at, input_text: newer.input_text },
@@ -181,11 +134,6 @@ const Index = () => {
   const handleCloseComparison = () => {
     setShowComparison(false);
     setComparisonData(null);
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/auth");
   };
 
   const handleDeleteAnalysis = async () => {
@@ -199,37 +147,20 @@ const Index = () => {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground font-mono">
-          INITIALIZING...
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
   return (
     <>
       <Helmet>
         <title>The Narrative Engine | Strategic Narrative Intelligence</title>
         <meta name="description" content="Transform any input into dynamic, structured story models with entities, arcs, conflicts, opportunities, risks, and scenarios." />
       </Helmet>
-      
+
       <div className="min-h-screen bg-background">
         <Header hasModel={!!model} />
-        
-        {/* User bar */}
+
+        {/* Utility bar */}
         <div className="border-b border-border">
           <div className="container mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-4">
-              <span className="text-xs text-muted-foreground font-mono truncate max-w-[120px] sm:max-w-none">
-                {user.email}
-              </span>
               <button
                 onClick={() => setShowHistory(!showHistory)}
                 className={`flex items-center gap-1 text-xs font-mono transition-colors ${
@@ -241,32 +172,6 @@ const Index = () => {
               </button>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Upgrade Button - Only show for free users */}
-              {subscription?.plan === "free" && (
-                <button
-                  onClick={() => navigate("/pricing")}
-                  className="btn-hot flex items-center gap-1.5 px-3 py-1.5 text-xs"
-                >
-                  <Crown className="w-3 h-3" />
-                  <span>Upgrade</span>
-                  {remainingAnalyses !== null && (
-                    <span className="opacity-80">({remainingAnalyses} left)</span>
-                  )}
-                </button>
-              )}
-              {/* Plan Badge for paid users */}
-              {subscription?.plan !== "free" && (
-                <button
-                  onClick={() => navigate("/pricing")}
-                  className="flex items-center gap-1 text-xs font-mono text-accent"
-                >
-                  <Crown className="w-3 h-3" />
-                  <span className="uppercase">
-                    {subscription?.plan === "lifetime" ? "Lifetime" : "Pro"}
-                  </span>
-                </button>
-              )}
-              {/* Help Button */}
               <button
                 onClick={() => setShowOnboarding(true)}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-mono transition-colors"
@@ -275,17 +180,10 @@ const Index = () => {
                 <HelpCircle className="w-3 h-3" />
                 <span className="hidden sm:inline">Help</span>
               </button>
-              <button
-                onClick={handleSignOut}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-mono transition-colors"
-              >
-                <LogOut className="w-3 h-3" />
-                <span className="hidden xs:inline">Sign Out</span>
-              </button>
             </div>
           </div>
         </div>
-        
+
         <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
           {showHistory ? (
             <div className="max-w-4xl mx-auto px-0 sm:px-0">
@@ -301,10 +199,10 @@ const Index = () => {
                 </button>
               </div>
               <AnalysisHistory onLoadAnalysis={handleLoadFromHistory} onCompare={handleCompare} />
-              
+
               {showComparison && comparisonData && (
                 <div className="mt-6">
-                  <ModelComparison 
+                  <ModelComparison
                     older={comparisonData.older}
                     newer={comparisonData.newer}
                     onClose={handleCloseComparison}
@@ -323,19 +221,19 @@ const Index = () => {
                   Input any text—notes, documents, updates, transcripts, market data—and the engine will extract entities, arcs, conflicts, opportunities, risks, and future scenarios.
                 </p>
               </div>
-              
+
               <NarrativeInput onSubmit={handleAnalyze} isLoading={isLoading} />
-              
+
               {/* Demo Button */}
               <div className="mt-4 sm:mt-6 text-center">
-                <button 
+                <button
                   onClick={() => {
                     setModel(mockNarrative);
                     setShowInput(false);
                   }}
                   className="text-xs sm:text-sm text-muted-foreground hover:text-foreground font-body underline underline-offset-4 transition-colors"
                 >
-                  Load demo narrative model (free preview)
+                  Load demo narrative model
                 </button>
               </div>
             </div>
@@ -355,13 +253,6 @@ const Index = () => {
                         {model?.entities.length} entities • {model?.current_arcs.length} arcs • {model?.conflicts.length} conflicts
                       </p>
                     </div>
-                    {currentAnalysisId && user && (
-                      <PresenceIndicator
-                        users={presence.users}
-                        currentUserId={user.id}
-                        isConnected={presence.isConnected}
-                      />
-                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     {/* Download Dropdown */}
@@ -374,35 +265,6 @@ const Index = () => {
                         <span>Download</span>
                       </button>
                       <div className="absolute right-0 top-full mt-1 bg-background border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[140px]">
-                        {/* Share Link - only if analysis is saved */}
-                        {currentAnalysisId && (
-                          <button
-                            onClick={async () => {
-                              // First, enable sharing
-                              const { error } = await supabase
-                                .from("narrative_analyses")
-                                .update({ is_shared: true })
-                                .eq("id", currentAnalysisId);
-                              
-                              if (error) {
-                                import("sonner").then(({ toast }) => {
-                                  toast.error("Failed to enable sharing");
-                                });
-                                return;
-                              }
-                              
-                              const shareUrl = `${window.location.origin}/shared/${currentAnalysisId}`;
-                              navigator.clipboard.writeText(shareUrl);
-                              import("sonner").then(({ toast }) => {
-                                toast.success("Share link copied to clipboard");
-                              });
-                            }}
-                            className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2 border-b border-border"
-                          >
-                            <Link2 className="w-3 h-3" />
-                            Share Link
-                          </button>
-                        )}
                         <button
                           onClick={() => {
                             if (model) {
@@ -436,7 +298,7 @@ const Index = () => {
                     {currentAnalysisId && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <button 
+                          <button
                             className="btn-tactical flex items-center gap-1 sm:gap-2 text-destructive hover:bg-destructive/10 text-xs sm:text-sm"
                             title="Delete Analysis"
                           >
@@ -460,13 +322,13 @@ const Index = () => {
                         </AlertDialogContent>
                       </AlertDialog>
                     )}
-                    <button 
+                    <button
                       onClick={handleNewAnalysis}
                       className="btn-tactical text-xs sm:text-sm"
                     >
                       New
                     </button>
-                    <button 
+                    <button
                       onClick={() => setShowIncrementalInput(true)}
                       className="btn-hot flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
                     >
@@ -477,22 +339,22 @@ const Index = () => {
                   </div>
                 </div>
               </div>
-              
+
               {showIncrementalInput && (
                 <div className="mb-8">
-                  <IncrementalUpdateInput 
+                  <IncrementalUpdateInput
                     onSubmit={handleIncrementalUpdate}
                     onCancel={() => setShowIncrementalInput(false)}
                     isLoading={isLoading}
                   />
                 </div>
               )}
-              
+
               {model && <NarrativeDashboard model={model} />}
             </>
           )}
         </main>
-        
+
         {/* Footer */}
         <footer className="border-t border-border mt-8 sm:mt-12">
           <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-1 text-center sm:text-left">
@@ -505,12 +367,6 @@ const Index = () => {
           </div>
         </footer>
       </div>
-
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-      />
 
       {/* Onboarding Modal */}
       <OnboardingModal

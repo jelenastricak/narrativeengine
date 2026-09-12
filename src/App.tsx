@@ -4,13 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import { AuthProvider } from "@/hooks/useAuth";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "@/pages/Index";
-import Auth from "@/pages/Auth";
-import Pricing from "@/pages/Pricing";
-import PaymentSuccess from "@/pages/PaymentSuccess";
-import SharedAnalysis from "@/pages/SharedAnalysis";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,22 +14,16 @@ const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/payment-success" element={<PaymentSuccess />} />
-                <Route path="/shared/:id" element={<SharedAnalysis />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
       </QueryClientProvider>
     </HelmetProvider>
   </ErrorBoundary>
