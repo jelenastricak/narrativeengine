@@ -111,64 +111,22 @@ serve(async (req) => {
         });
       }
     } else if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
-      // For PDF, use Lovable AI to extract text
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) {
-        return new Response(JSON.stringify({ error: "AI service not configured" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      // Extract PDF text natively (Gemini does not accept PDFs via image_url)
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const { extractText, getDocumentProxy } = await import("https://esm.sh/unpdf@0.12.1");
+        const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
+        const { text } = await extractText(pdf, { mergePages: true });
+        extractedText = (Array.isArray(text) ? text.join("\n\n") : text) ?? "";
+        console.log(`Extracted ${extractedText.length} chars from PDF`);
+      } catch (pdfError) {
+        console.error("PDF parsing error:", pdfError);
+        return new Response(
+          JSON.stringify({ error: "Could not read this PDF. It may be scanned or password protected." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
-      const arrayBuffer = await file.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      let binaryString = "";
-      const chunkSize = 8192;
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.subarray(i, i + chunkSize);
-        binaryString += String.fromCharCode.apply(null, Array.from(chunk));
-      }
-      const base64 = btoa(binaryString);
-      const dataUrl = `data:${fileType};base64,${base64}`;
-
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: "Extract all text content from this document. Return ONLY the extracted text, no commentary or formatting instructions. Preserve paragraph structure with line breaks.",
-                },
-                {
-                  type: "image_url",
-                  image_url: { url: dataUrl },
-                },
-              ],
-            },
-          ],
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error("AI extraction failed:", errorText);
-        return new Response(JSON.stringify({ error: "Failed to extract text from PDF" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const aiData = await aiResponse.json();
-      extractedText = aiData.choices?.[0]?.message?.content || "";
-      console.log("Extracted text from PDF using AI");
     } else if (fileType === "application/msword" || fileName.endsWith(".doc")) {
       // Old .doc format is not supported
       return new Response(
