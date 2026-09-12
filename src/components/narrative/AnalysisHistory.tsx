@@ -1,18 +1,14 @@
 import { useEffect, useState } from "react";
-import { Clock, Trash2, Users, GitBranch, Flame, CheckSquare, Square, TrendingUp, Globe } from "lucide-react";
+import { Clock, Trash2, Users, GitBranch, Flame, CheckSquare, Square, TrendingUp } from "lucide-react";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
-import { useAuth } from "@/hooks/useAuth";
 import { NarrativeModel } from "@/types/narrative";
 import { format } from "date-fns";
-import { ShareToggle } from "./ShareToggle";
 
 interface SavedAnalysis {
   id: string;
-  user_id: string;
   input_text: string;
   analysis_result: NarrativeModel;
   created_at: string;
-  is_shared: boolean;
 }
 
 interface AnalysisHistoryProps {
@@ -22,13 +18,12 @@ interface AnalysisHistoryProps {
 
 export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryProps) {
   const { analyses, isLoading, fetchAnalyses, deleteAnalysis } = useAnalysisHistory();
-  const { user } = useAuth();
   const [compareMode, setCompareMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchAnalyses();
-  }, []);
+  }, [fetchAnalyses]);
 
   const handleToggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -44,12 +39,12 @@ export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryPr
 
   const handleCompare = () => {
     if (selectedIds.length !== 2 || !onCompare) return;
-    
+
     const selected = analyses.filter(a => selectedIds.includes(a.id));
-    const sorted = selected.sort((a, b) => 
+    const sorted = selected.sort((a, b) =>
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
-    
+
     onCompare(sorted[0] as SavedAnalysis, sorted[1] as SavedAnalysis);
     setCompareMode(false);
     setSelectedIds([]);
@@ -126,14 +121,14 @@ export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryPr
       <div className="divide-y divide-border max-h-80 sm:max-h-96 overflow-y-auto">
         {analyses.map((analysis) => {
           const isSelected = selectedIds.includes(analysis.id);
-          
+
           return (
             <div
               key={analysis.id}
               className={`p-3 sm:p-4 transition-colors group ${
-                compareMode 
-                  ? isSelected 
-                    ? 'bg-accent/10' 
+                compareMode
+                  ? isSelected
+                    ? 'bg-accent/10'
                     : 'hover:bg-muted/20 cursor-pointer'
                   : 'hover:bg-muted/20'
               }`}
@@ -158,12 +153,6 @@ export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryPr
                     <p className="text-xs text-muted-foreground font-mono">
                       {format(new Date(analysis.created_at), "MMM d, HH:mm")}
                     </p>
-                    {analysis.is_shared && analysis.user_id !== user?.id && (
-                      <span className="flex items-center gap-1 text-xs text-primary font-mono">
-                        <Globe className="w-3 h-3" />
-                        Shared
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs sm:text-sm text-foreground font-body line-clamp-2 mb-2">
                     {analysis.input_text.substring(0, 100)}
@@ -186,21 +175,13 @@ export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryPr
                 </button>
                 {!compareMode && (
                   <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                    <ShareToggle
-                      analysisId={analysis.id}
-                      isShared={analysis.is_shared}
-                      isOwner={analysis.user_id === user?.id}
-                      onShareChange={() => fetchAnalyses()}
-                    />
-                    {analysis.user_id === user?.id && (
-                      <button
-                        onClick={() => deleteAnalysis(analysis.id)}
-                        className="p-1.5 sm:p-2 text-muted-foreground hover:text-accent sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                        title="Delete analysis"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => deleteAnalysis(analysis.id)}
+                      className="p-1.5 sm:p-2 text-muted-foreground hover:text-accent sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                      title="Delete analysis"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
               </div>
