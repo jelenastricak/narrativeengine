@@ -65,18 +65,6 @@ export function useFileUpload({ onTextExtracted }: UseFileUploadOptions) {
     setUploadedFile(file);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to upload files.",
-          variant: "destructive",
-        });
-        setUploadedFile(null);
-        return;
-      }
-
       const formData = new FormData();
       formData.append("file", file);
 
