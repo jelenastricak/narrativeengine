@@ -6,6 +6,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+const decodeXml = (s: string) =>
+  s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+
 // Parse DOCX file (ZIP with XML inside)
 async function parseDocx(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
@@ -19,27 +24,14 @@ async function parseDocx(file: File): Promise<string> {
   
   const xmlContent = await documentXml.async("text");
   
-  // Extract text from XML, preserving paragraph breaks
-  // Match text content within <w:t> tags
-  const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
-  const paragraphBreaks = xmlContent.match(/<\/w:p>/g) || [];
-  
-  // Build text with paragraph awareness
-  let result = "";
-  let lastIndex = 0;
-  
-  // Simple extraction: get all text content
   const allText: string[] = [];
-  let currentParagraph = "";
-  
-  // Split by paragraph tags and extract text
   const paragraphs = xmlContent.split(/<\/w:p>/);
   
   for (const para of paragraphs) {
     const texts = para.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
     if (texts.length > 0) {
       const paraText = texts
-        .map(t => t.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, "$1"))
+        .map(t => decodeXml(t.replace(/<w:t[^>]*>([^<]*)<\/w:t>/, "$1")))
         .join("");
       if (paraText.trim()) {
         allText.push(paraText.trim());
@@ -55,13 +47,27 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file");
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return new Response(JSON.stringify({ error: "No file provided" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (file.size > MAX_FILE_BYTES) {
+      return new Response(JSON.stringify({ error: "File too large. Maximum size is 10MB." }), {
+        status: 413,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -139,21 +145,15 @@ serve(async (req) => {
         }
       );
     } else {
-      // Unsupported file type - try to read as text
-      try {
-        extractedText = await file.text();
-        console.log("Attempted to read unsupported file as text");
-      } catch {
         return new Response(
-          JSON.stringify({
-            error: `Unsupported file type: ${fileType || fileName}. Supported: TXT, MD, JSON, CSV, HTML, XML, PDF, DOCX`,
-          }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
+        JSON.stringify({
+          error: `Unsupported file type: ${fileType || fileName}. Supported: TXT, MD, JSON, CSV, HTML, XML, PDF, DOCX`,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     if (!extractedText.trim()) {
@@ -177,7 +177,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error parsing file:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Failed to parse file" }),
+      JSON.stringify({ error: "Failed to process the file. Please try another file." }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,15 +1,8 @@
 import { useEffect, useState } from "react";
 import { Clock, Trash2, Users, GitBranch, Flame, CheckSquare, Square, TrendingUp } from "lucide-react";
-import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
+import { useAnalysisHistory, type SavedAnalysis } from "@/hooks/useAnalysisHistory";
 import { NarrativeModel } from "@/types/narrative";
 import { format } from "date-fns";
-
-interface SavedAnalysis {
-  id: string;
-  input_text: string;
-  analysis_result: NarrativeModel;
-  created_at: string;
-}
 
 interface AnalysisHistoryProps {
   onLoadAnalysis: (model: NarrativeModel, analysisId?: string) => void;
@@ -45,7 +38,7 @@ export function AnalysisHistory({ onLoadAnalysis, onCompare }: AnalysisHistoryPr
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
 
-    onCompare(sorted[0] as SavedAnalysis, sorted[1] as SavedAnalysis);
+    onCompare(sorted[0], sorted[1]);
     setCompareMode(false);
     setSelectedIds([]);
   };

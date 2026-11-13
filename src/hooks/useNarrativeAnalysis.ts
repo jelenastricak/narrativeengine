@@ -1,49 +1,55 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NarrativeModel } from "@/types/narrative";
+import { MAX_INPUT_CHARS, normalizeNarrativeModel } from "@/lib/normalizeModel";
 import { toast } from "sonner";
+
+export const MIN_INPUT_CHARS = 20;
+
+async function extractErrorMessage(fnError: unknown): Promise<string> {
+  const ctx = (fnError as { context?: unknown })?.context;
+  if (ctx instanceof Response) {
+    try {
+      const body = await ctx.clone().json();
+      if (body && typeof body.error === "string") return body.error;
+    } catch {
+      // ignore
+    }
+  }
+  return fnError instanceof Error ? fnError.message : "Analysis failed";
+}
 
 export function useNarrativeAnalysis() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const analyzeNarrative = async (
-    text: string, 
-    existingModel?: NarrativeModel
-  ): Promise<NarrativeModel | null> => {
+  const analyzeNarrative = async (text: string, existingModel?: NarrativeModel): Promise<NarrativeModel | null> => {
+    const trimmed = text.trim();
+    if (trimmed.length < MIN_INPUT_CHARS) {
+      toast.error(`Please provide at least ${MIN_INPUT_CHARS} characters of text.`);
+      return null;
+    }
+    if (trimmed.length > MAX_INPUT_CHARS) {
+      toast.error(`Text is too long (max ${MAX_INPUT_CHARS.toLocaleString()} characters).`);
+      return null;
+    }
+
     setIsLoading(true);
     setError(null);
-
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('analyze-narrative', {
-        body: { text, existingModel }
+      const { data, error: fnError } = await supabase.functions.invoke("analyze-narrative", {
+        body: { text: trimmed, existingModel },
       });
+      if (fnError) throw new Error(await extractErrorMessage(fnError));
+      if (data?.error) throw new Error(data.error);
 
-      if (fnError) {
-        throw new Error(fnError.message);
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      const successMessage = existingModel 
-        ? "Narrative model updated with new insights" 
-        : "Narrative analysis complete";
-      toast.success(successMessage);
-      return data as NarrativeModel;
+      const model = normalizeNarrativeModel(data);
+      toast.success(existingModel ? "Narrative model updated with new insights" : "Narrative analysis complete");
+      return model;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Analysis failed';
+      const message = err instanceof Error ? err.message : "Analysis failed";
       setError(message);
-      
-      if (message.includes('Rate limit')) {
-        toast.error("Rate limit exceeded. Please wait a moment and try again.");
-      } else if (message.includes('Usage limit')) {
-        toast.error("Usage limit reached. Please add credits to continue.");
-      } else {
-        toast.error(`Analysis failed: ${message}`);
-      }
-      
+      toast.error(message.startsWith("Analysis") ? message : `Analysis failed: ${message}`);
       return null;
     } finally {
       setIsLoading(false);

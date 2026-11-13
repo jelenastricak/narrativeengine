@@ -1,0 +1,1 @@
+- AI result validation lives in `supabase/functions/_shared/normalizeModel.ts`, used by both the edge function and the web app (via `src/lib/normalizeModel.ts`), so server and browser apply identical schema rules.

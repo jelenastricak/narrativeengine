@@ -1,4 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { normalizeNarrativeModel, MAX_INPUT_CHARS } from "../_shared/normalizeModel.ts";
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -124,14 +128,27 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+
   try {
-    const { text, existingModel } = await req.json();
-    
-    if (!text || typeof text !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'Text input is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    let body: { text?: unknown; existingModel?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return json({ error: 'Invalid request body' }, 400);
+    }
+    const text = typeof body.text === 'string' ? body.text.trim() : '';
+    if (text.length < 20) return json({ error: 'Please provide at least 20 characters of text to analyze.' }, 400);
+    if (text.length > MAX_INPUT_CHARS) {
+      return json({ error: `Text is too long (max ${MAX_INPUT_CHARS.toLocaleString()} characters).` }, 400);
+    }
+    let existingModel: unknown = undefined;
+    if (body.existingModel !== undefined && body.existingModel !== null) {
+      try {
+        existingModel = normalizeNarrativeModel(body.existingModel);
+      } catch {
+        return json({ error: 'Existing model is invalid' }, 400);
+      }
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -171,7 +188,8 @@ Analyze the new information and merge it with the existing model. Return the com
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
       }),
     });
 
@@ -209,19 +227,17 @@ Analyze the new information and merge it with the existing model. Return the com
       jsonContent = jsonMatch[1].trim();
     }
 
-    const narrativeModel = JSON.parse(jsonContent);
-    console.log('Narrative model parsed successfully');
+    let narrativeModel;
+    try {
+      narrativeModel = normalizeNarrativeModel(JSON.parse(jsonContent));
+    } catch (e) {
+      console.error('Unusable AI response:', e);
+      return json({ error: 'The analysis came back incomplete. Please try again.' }, 502);
+    }
 
-    return new Response(
-      JSON.stringify(narrativeModel),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return json(narrativeModel);
   } catch (error) {
     console.error('Error in analyze-narrative:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error occurred' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return json({ error: 'Analysis failed due to a server error. Please try again.' }, 500);
   }
 });

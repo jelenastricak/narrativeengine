@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/narrative/Header";
-import { NarrativeInput } from "@/components/narrative/NarrativeInput";
 import { NarrativeDashboard } from "@/components/narrative/NarrativeDashboard";
 import { NarrativeLoadingSkeleton } from "@/components/narrative/NarrativeLoadingSkeleton";
 import { AnalysisHistory } from "@/components/narrative/AnalysisHistory";
@@ -13,19 +12,10 @@ import { NarrativeModel } from "@/types/narrative";
 import { Helmet } from "react-helmet-async";
 import { useNarrativeAnalysis } from "@/hooks/useNarrativeAnalysis";
 import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
-import { History, Download, FileJson, Plus, Trash2, HelpCircle, Copy } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { exportToJSON, exportToPDF } from "@/utils/exportAnalysis";
+import { History, HelpCircle } from "lucide-react";
+import { AnalysisToolbar } from "@/components/narrative/AnalysisToolbar";
+import { EmptyState } from "@/components/narrative/EmptyState";
+import type { SavedAnalysis } from "@/hooks/useAnalysisHistory";
 
 const ONBOARDING_KEY = "narrative-engine-onboarding-seen";
 
@@ -52,10 +42,8 @@ const Index = () => {
 
   // Auto-load demo if URL param present
   useEffect(() => {
-    if (searchParams.get('demo') === 'true') {
-      setModel(mockNarrative);
-      setShowInput(false);
-    }
+    if (searchParams.get('demo') === 'true') handleLoadDemo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   // Show onboarding for first-time visitors
@@ -104,6 +92,12 @@ const Index = () => {
     }
   };
 
+  const handleLoadDemo = () => {
+    setModel(mockNarrative);
+    setCurrentAnalysisId(null);
+    setShowInput(false);
+  };
+
   const handleNewAnalysis = () => {
     setShowInput(true);
     setShowHistory(false);
@@ -120,10 +114,7 @@ const Index = () => {
     setShowComparison(false);
   };
 
-  const handleCompare = (
-    older: { id: string; analysis_result: NarrativeModel; created_at: string; input_text: string },
-    newer: { id: string; analysis_result: NarrativeModel; created_at: string; input_text: string }
-  ) => {
+  const handleCompare = (older: SavedAnalysis, newer: SavedAnalysis) => {
     setComparisonData({
       older: { id: older.id, model: older.analysis_result, created_at: older.created_at, input_text: older.input_text },
       newer: { id: newer.id, model: newer.analysis_result, created_at: newer.created_at, input_text: newer.input_text },
@@ -211,134 +202,20 @@ const Index = () => {
               )}
             </div>
           ) : showInput ? (
-            <div className="max-w-4xl mx-auto">
-              {/* Welcome Panel */}
-              <div className="text-center mb-6 sm:mb-8 px-2 sm:px-0">
-                <h2 className="font-display text-xl sm:text-2xl tracking-[0.1em] sm:tracking-[0.15em] text-foreground mb-2">
-                  NARRATIVE ANALYSIS
-                </h2>
-                <p className="text-sm sm:text-base text-muted-foreground font-body max-w-2xl mx-auto">
-                  Input any text—notes, documents, updates, transcripts, market data—and the engine will extract entities, arcs, conflicts, opportunities, risks, and future scenarios.
-                </p>
-              </div>
-
-              <NarrativeInput onSubmit={handleAnalyze} isLoading={isLoading} />
-
-              {/* Demo Button */}
-              <div className="mt-4 sm:mt-6 text-center">
-                <button
-                  onClick={() => {
-                    setModel(mockNarrative);
-                    setShowInput(false);
-                  }}
-                  className="text-xs sm:text-sm text-muted-foreground hover:text-foreground font-body underline underline-offset-4 transition-colors"
-                >
-                  Load demo narrative model
-                </button>
-              </div>
-            </div>
+            <EmptyState onAnalyze={handleAnalyze} onLoadDemo={handleLoadDemo} isLoading={isLoading} />
           ) : isAnalyzing ? (
             <NarrativeLoadingSkeleton />
           ) : (
             <>
-              {/* Analysis Controls */}
-              <div className="mb-6 sm:mb-8 border-b border-border pb-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <div>
-                      <span className="text-xs font-display uppercase tracking-widest text-muted-foreground">
-                        Active Narrative Model
-                      </span>
-                      <p className="text-xs sm:text-sm text-foreground font-mono">
-                        {model?.entities.length} entities • {model?.current_arcs.length} arcs • {model?.conflicts.length} conflicts
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    {/* Download Dropdown */}
-                    <div className="relative group">
-                      <button
-                        className="btn-hot flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                        title="Download Analysis"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>Download</span>
-                      </button>
-                      <div className="absolute right-0 top-full mt-1 bg-background border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[140px]">
-                        <button
-                          onClick={() => {
-                            if (model) {
-                              navigator.clipboard.writeText(JSON.stringify(model, null, 2));
-                              import("sonner").then(({ toast }) => {
-                                toast.success("Copied to clipboard");
-                              });
-                            }
-                          }}
-                          className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2"
-                        >
-                          <Copy className="w-3 h-3" />
-                          Copy JSON
-                        </button>
-                        <button
-                          onClick={() => model && exportToJSON(model)}
-                          className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2"
-                        >
-                          <FileJson className="w-3 h-3" />
-                          JSON File
-                        </button>
-                        <button
-                          onClick={() => model && exportToPDF(model)}
-                          className="w-full px-3 py-2 text-xs font-mono text-left hover:bg-muted flex items-center gap-2"
-                        >
-                          <Download className="w-3 h-3" />
-                          PDF File
-                        </button>
-                      </div>
-                    </div>
-                    {currentAnalysisId && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            className="btn-tactical flex items-center gap-1 sm:gap-2 text-destructive hover:bg-destructive/10 text-xs sm:text-sm"
-                            title="Delete Analysis"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            <span className="hidden sm:inline">Delete</span>
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-background border-border mx-4 sm:mx-auto max-w-[calc(100vw-2rem)] sm:max-w-lg">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle className="font-display tracking-widest text-sm sm:text-base">DELETE ANALYSIS</AlertDialogTitle>
-                            <AlertDialogDescription className="font-body text-xs sm:text-sm">
-                              This action cannot be undone. This will permanently delete this narrative analysis from your history.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                            <AlertDialogCancel className="btn-tactical">Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDeleteAnalysis} className="btn-hot">
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                    <button
-                      onClick={handleNewAnalysis}
-                      className="btn-tactical text-xs sm:text-sm"
-                    >
-                      New
-                    </button>
-                    <button
-                      onClick={() => setShowIncrementalInput(true)}
-                      className="btn-hot flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span className="hidden sm:inline">Add Updates</span>
-                      <span className="sm:hidden">Add</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              {model && (
+                <AnalysisToolbar
+                  model={model}
+                  canDelete={!!currentAnalysisId}
+                  onDelete={handleDeleteAnalysis}
+                  onNew={handleNewAnalysis}
+                  onAddUpdates={() => setShowIncrementalInput(true)}
+                />
+              )}
 
               {showIncrementalInput && (
                 <div className="mb-8">
