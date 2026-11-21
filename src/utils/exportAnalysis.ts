@@ -11,7 +11,7 @@ export function exportToJSON(model: NarrativeModel, filename = "narrative-analys
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export async function exportToPDF(model: NarrativeModel, filename = "narrative-analysis") {
@@ -72,6 +72,10 @@ export async function exportToPDF(model: NarrativeModel, filename = "narrative-a
       if (entity.goals.length) addText(`Goals: ${entity.goals.join(", ")}`, 9);
       if (entity.motivations.length) addText(`Motivations: ${entity.motivations.join(", ")}`, 9);
       if (entity.constraints.length) addText(`Constraints: ${entity.constraints.join(", ")}`, 9);
+      if (entity.fears.length) addText(`Fears: ${entity.fears.join(", ")}`, 9);
+      for (const [relation, names] of Object.entries(entity.relationships)) {
+        if (names.length) addText(`${relation.replace(/_/g, " ")}: ${names.join(", ")}`, 9);
+      }
       y += 4;
     }
   }
@@ -80,7 +84,7 @@ export async function exportToPDF(model: NarrativeModel, filename = "narrative-a
   if (model.current_arcs.length > 0) {
     addSection("CURRENT ARCS");
     for (const arc of model.current_arcs) {
-      addText(`${arc.arc_name} — ${arc.stage.replace("_", " ").toUpperCase()}`, 11, true);
+      addText(`${arc.arc_name} — ${arc.stage.replace(/_/g, " ").toUpperCase()}`, 11, true);
       addText(arc.description, 9);
       if (arc.evidence.length) addText(`Evidence: ${arc.evidence.join("; ")}`, 9);
       y += 4;
@@ -94,6 +98,7 @@ export async function exportToPDF(model: NarrativeModel, filename = "narrative-a
       addText(`${conflict.conflict_name} [${conflict.type.toUpperCase()}]`, 11, true);
       if (conflict.drivers.length) addText(`Drivers: ${conflict.drivers.join(", ")}`, 9);
       if (conflict.pressure_points.length) addText(`Pressure Points: ${conflict.pressure_points.join(", ")}`, 9);
+      if (conflict.possible_breaks.length) addText(`Possible Breaks: ${conflict.possible_breaks.join(", ")}`, 9);
       y += 4;
     }
   }
@@ -104,6 +109,7 @@ export async function exportToPDF(model: NarrativeModel, filename = "narrative-a
     for (const opp of model.opportunities) {
       addText(opp.opportunity_name, 11, true);
       addText(`Outcome: ${opp.potential_outcome}`, 9);
+      if (opp.conditions.length) addText(`Conditions: ${opp.conditions.join(", ")}`, 9);
       if (opp.required_actions.length) addText(`Actions: ${opp.required_actions.join(", ")}`, 9);
       y += 4;
     }

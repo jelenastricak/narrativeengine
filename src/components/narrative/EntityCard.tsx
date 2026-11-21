@@ -33,7 +33,7 @@ export function EntityCard({ entity }: EntityCardProps) {
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 border border-border flex items-center justify-center bg-charcoal-light">
+          <div className="w-10 h-10 shrink-0 border border-border flex items-center justify-center bg-charcoal-light">
             <User className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
@@ -63,6 +63,13 @@ export function EntityCard({ entity }: EntityCardProps) {
         </ul>
       </div>
       
+      {([['Motivations', entity.motivations], ['Constraints', entity.constraints]] as const).map(([label, values]) => values.length > 0 && (
+        <div key={label} className="mb-3">
+          <span className="text-xs font-display uppercase text-muted-foreground">{label}</span>
+          <ul className="mt-1 space-y-1">{values.map((value, i) => <li key={i} className="text-sm font-body">{value}</li>)}</ul>
+        </div>
+      ))}
+
       {/* Fears */}
       {entity.fears.length > 0 && (
         <div className="mb-3">
@@ -99,6 +106,8 @@ export function EntityCard({ entity }: EntityCardProps) {
               <span className="text-accent">{entity.relationships.conflicts_with.join(", ")}</span>
             </div>
           )}
+          {entity.relationships.depends_on.length > 0 && <div><span className="text-muted-foreground">Depends on: </span>{entity.relationships.depends_on.join(', ')}</div>}
+          {entity.relationships.influences.length > 0 && <div><span className="text-muted-foreground">Influences: </span>{entity.relationships.influences.join(', ')}</div>}
         </div>
       </div>
     </div>

@@ -33,4 +33,10 @@ describe("normalizeNarrativeModel", () => {
     expect(() => normalizeNarrativeModel({})).toThrow();
     expect(() => normalizeNarrativeModel("nope")).toThrow();
   });
+
+  it("keeps usable risk-only results instead of rejecting them as empty", () => {
+    const model = normalizeNarrativeModel({ risks: [{ risk_name: "Launch outage", severity: "high" }] });
+    expect(model.risks[0].risk_name).toBe("Launch outage");
+    expect(model.risks[0].severity).toBe("high");
+  });
 });

@@ -1,1 +1,9 @@
 - AI result validation lives in `supabase/functions/_shared/normalizeModel.ts`, used by both the edge function and the web app (via `src/lib/normalizeModel.ts`), so server and browser apply identical schema rules.
+- Share document validation through `supabase/functions/_shared/filePolicy.ts`; client and server must enforce the same file types and limits.
+- Keep history persistence in `src/lib/historyStorage.ts` and broadcast same-tab changes; multiple hook instances and browser tabs must stay synchronized.
+- Keep analysis and update drafts in the page state until success; failed requests and navigation must not discard user input.
+- Use Sonner as the single visible notification system; competing toast layers obscure controls on small screens.
+- Route components use React lazy/Suspense and PDF export dynamically imports jsPDF; heavy dependencies must not block initial rendering.
+- Gateway inference runs only in the analysis edge function through the supported SDK; shared schema normalization validates every result before display.
+- Compare named items by identity and attributes in `src/lib/compareModels.ts`; an unchanged name does not imply an unchanged model item.
+- Pin patched transitive versions through package overrides and keep both lockfiles synchronized; security checks must inspect the versions actually deployed.

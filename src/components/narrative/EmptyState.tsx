@@ -1,12 +1,14 @@
 import { NarrativeInput } from "./NarrativeInput";
 
 interface EmptyStateProps {
+  text: string;
+  onTextChange: (text: string) => void;
   onAnalyze: (text: string) => void;
   onLoadDemo: () => void;
   isLoading: boolean;
 }
 
-export function EmptyState({ onAnalyze, onLoadDemo, isLoading }: EmptyStateProps) {
+export function EmptyState({ text, onTextChange, onAnalyze, onLoadDemo, isLoading }: EmptyStateProps) {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-6 sm:mb-8 px-2 sm:px-0">
@@ -18,7 +20,7 @@ export function EmptyState({ onAnalyze, onLoadDemo, isLoading }: EmptyStateProps
         </p>
       </div>
 
-      <NarrativeInput onSubmit={onAnalyze} isLoading={isLoading} />
+      <NarrativeInput text={text} onTextChange={onTextChange} onSubmit={onAnalyze} isLoading={isLoading} />
 
       <div className="mt-4 sm:mt-6 text-center">
         <button

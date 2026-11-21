@@ -1,4 +1,5 @@
 import { Download, FileJson, Plus, Trash2, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { NarrativeModel } from "@/types/narrative";
 import { exportToJSON, exportToPDF } from "@/utils/exportAnalysis";
@@ -22,6 +23,7 @@ import {
 
 interface AnalysisToolbarProps {
   model: NarrativeModel;
+  isDemo?: boolean;
   canDelete: boolean;
   onDelete: () => void;
   onNew: () => void;
@@ -30,7 +32,7 @@ interface AnalysisToolbarProps {
 
 const itemClass = "px-3 py-2 text-xs font-mono rounded-none cursor-pointer flex items-center gap-2";
 
-export function AnalysisToolbar({ model, canDelete, onDelete, onNew, onAddUpdates }: AnalysisToolbarProps) {
+export function AnalysisToolbar({ model, isDemo, canDelete, onDelete, onNew, onAddUpdates }: AnalysisToolbarProps) {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(model, null, 2));
@@ -53,7 +55,7 @@ export function AnalysisToolbar({ model, canDelete, onDelete, onNew, onAddUpdate
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-display uppercase tracking-widest text-muted-foreground">
-            Active Narrative Model
+            {isDemo ? "Demo Narrative Model · Sample data" : "Active Narrative Model"}
           </span>
           <p className="text-xs sm:text-sm text-foreground font-mono">
             {model.entities.length} entities • {model.current_arcs.length} arcs • {model.conflicts.length} conflicts
@@ -62,10 +64,10 @@ export function AnalysisToolbar({ model, canDelete, onDelete, onNew, onAddUpdate
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="btn-hot flex items-center gap-1 sm:gap-2 text-xs sm:text-sm" title="Download Analysis">
+              <Button variant="ghost" className="btn-hot flex items-center gap-1 sm:gap-2 text-xs sm:text-sm" title="Download Analysis">
                 <Download className="w-4 h-4" />
                 <span>Download</span>
-              </button>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border rounded-none min-w-[140px] p-0">
               <DropdownMenuItem onSelect={handleCopy} className={itemClass}>
@@ -86,15 +88,15 @@ export function AnalysisToolbar({ model, canDelete, onDelete, onNew, onAddUpdate
           {canDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <button
+                <Button variant="ghost"
                   className="btn-tactical flex items-center gap-1 sm:gap-2 text-destructive hover:bg-destructive/10 text-xs sm:text-sm"
                   title="Delete Analysis"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span className="hidden sm:inline">Delete</span>
-                </button>
+                </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="bg-background border-border mx-4 sm:mx-auto max-w-[calc(100vw-2rem)] sm:max-w-lg">
+              <AlertDialogContent className="bg-background border-border max-w-[calc(100vw-2rem)] sm:max-w-lg">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="font-display tracking-widest text-sm sm:text-base">DELETE ANALYSIS</AlertDialogTitle>
                   <AlertDialogDescription className="font-body text-xs sm:text-sm">
@@ -111,14 +113,14 @@ export function AnalysisToolbar({ model, canDelete, onDelete, onNew, onAddUpdate
             </AlertDialog>
           )}
 
-          <button onClick={onNew} className="btn-tactical text-xs sm:text-sm">
+          <Button variant="ghost" onClick={onNew} className="btn-tactical text-xs sm:text-sm">
             New
-          </button>
-          <button onClick={onAddUpdates} className="btn-hot flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+          </Button>
+          <Button variant="ghost" onClick={onAddUpdates} className="btn-hot flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Add Updates</span>
             <span className="sm:hidden">Add</span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>

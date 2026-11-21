@@ -1,73 +1,30 @@
-# Welcome to your Lovable project
+# The Narrative Engine
 
-## Project info
+Strategic narrative intelligence from text and documents: actors, arcs, conflicts, opportunities, risks, scenarios and recommended actions.
 
-**URL**: https://lovable.dev/projects/3abf48fa-39dd-41b7-b039-9cae8c563e15
+## Current product
 
-## How can I edit this code?
+Anonymous access. History is saved only in this browser on this device; clearing browser data removes it. Export important analyses. Sign-in, account-bound subscriptions, payments, sharing and collaboration were explicitly removed.
 
-There are several ways of editing your application.
+Supported: TXT, MD, JSON, CSV, HTML, XML, DOCX and text-based PDF. Maximum file size: 10MB. Narrative/update input: 20–100,000 characters. Old DOC and scanned/image-only/protected PDFs are unsupported.
 
-**Use Lovable**
+New analyses, incremental updates, comparisons, confirmed deletion, JSON/PDF download and clipboard export are available. Demo and demo-derived models are explicitly labelled.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/3abf48fa-39dd-41b7-b039-9cae8c563e15) and start prompting.
+## Development
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+React 18, TypeScript, Vite, Tailwind and shadcn controls; Lovable Cloud functions parse documents and run AI analysis.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+bun install
+bun run dev
+bun run test
+bun run lint
 ```
 
-**Edit a file directly in GitHub**
+The managed preview performs build/TypeScript checks automatically. Keep both lockfiles synchronized after dependency updates. Changes are saved through explicit commits; publishing the frontend is a separate action.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+AI credentials remain in server-side platform secrets. Deploy `parse-file` and `analyze-narrative` when their source or shared dependencies change. Anonymous inference consumes owner credits; failures must remain honest errors, never fabricated analyses.
 
-**Use GitHub Codespaces**
+## Audit
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/3abf48fa-39dd-41b7-b039-9cae8c563e15) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+See [the production audit](docs/production-audit.md) for concrete workflow evidence, fixes and operational limitations.

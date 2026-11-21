@@ -1,267 +1,61 @@
-import { NarrativeModel, Entity, NarrativeArc, Conflict } from "@/types/narrative";
-import { X, ArrowRight, Plus, Minus, Equal, Users, GitBranch, Flame, Target, AlertTriangle, TrendingUp } from "lucide-react";
+import type { NarrativeModel } from "@/types/narrative";
+import { X, ArrowRight, Plus, Minus, Equal, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { compareItems } from "@/lib/compareModels";
 import { format } from "date-fns";
 
-interface ComparisonItem {
-  id: string;
-  model: NarrativeModel;
-  created_at: string;
-  input_text: string;
-}
+interface ComparisonItem { id: string; model: NarrativeModel; created_at: string; input_text: string; }
+interface ModelComparisonProps { older: ComparisonItem; newer: ComparisonItem; onClose: () => void; }
 
-interface ModelComparisonProps {
-  older: ComparisonItem;
-  newer: ComparisonItem;
-  onClose: () => void;
+function DiffBadge({ type }: { type: "added" | "removed" | "changed" | "unchanged" }) {
+  const Icon = type === "added" ? Plus : type === "removed" ? Minus : type === "changed" ? ArrowRight : Equal;
+  return <span className={`inline-flex shrink-0 items-center gap-1 text-xs px-1.5 py-0.5 border ${type === "removed" || type === "changed" ? "text-accent border-accent/30 bg-accent/10" : "text-foreground border-border bg-muted"}`}><Icon className="w-3 h-3" />{type === "added" ? "NEW" : type.toUpperCase()}</span>;
 }
-
-function getEntityDiff(older: Entity[], newer: Entity[]) {
-  const olderNames = new Set(older.map(e => e.name.toLowerCase()));
-  const newerNames = new Set(newer.map(e => e.name.toLowerCase()));
-  
-  const added = newer.filter(e => !olderNames.has(e.name.toLowerCase()));
-  const removed = older.filter(e => !newerNames.has(e.name.toLowerCase()));
-  const unchanged = newer.filter(e => olderNames.has(e.name.toLowerCase()));
-  
-  return { added, removed, unchanged };
+function display(value: unknown): string {
+  if (Array.isArray(value)) return value.join("; ") || "None";
+  if (value && typeof value === "object") return Object.entries(value).map(([key, val]) => `${key.replace(/_/g, " ")}: ${display(val)}`).join(" | ");
+  return typeof value === "string" && value ? value.replace(/_/g, " ") : "None";
 }
-
-function getArcDiff(older: NarrativeArc[], newer: NarrativeArc[]) {
-  const olderNames = new Set(older.map(a => a.arc_name.toLowerCase()));
-  const newerNames = new Set(newer.map(a => a.arc_name.toLowerCase()));
-  
-  const added = newer.filter(a => !olderNames.has(a.arc_name.toLowerCase()));
-  const removed = older.filter(a => !newerNames.has(a.arc_name.toLowerCase()));
-  const unchanged = newer.filter(a => olderNames.has(a.arc_name.toLowerCase()));
-  
-  return { added, removed, unchanged };
+function DiffSection<T extends object>({ title, older, newer, name }: { title: string; older: T[]; newer: T[]; name: (item: T) => string }) {
+  const diff = compareItems(older, newer, name);
+  const count = diff.added.length + diff.removed.length + diff.changed.length;
+  return <section className="space-y-3">
+    <h4 className="text-xs font-display uppercase tracking-widest text-muted-foreground">{title} · {count} changes</h4>
+    {!count && <p className="text-xs text-muted-foreground">No changes.</p>}
+    {diff.added.map((item, i) => <div key={`add-${i}`} className="flex items-start justify-between gap-2 p-2 border border-border"><span className="text-sm">{name(item)}</span><DiffBadge type="added" /></div>)}
+    {diff.removed.map((item, i) => <div key={`remove-${i}`} className="flex items-start justify-between gap-2 p-2 border border-accent/20"><span className="text-sm line-through text-muted-foreground">{name(item)}</span><DiffBadge type="removed" /></div>)}
+    {diff.changed.map((item, i) => {
+      const previous = older.find(old => name(old).toLowerCase().trim() === name(item).toLowerCase().trim());
+      if (!previous) return null;
+      const oldFields = previous as Record<string, unknown>;
+      const fields = Object.entries(item).filter(([key, value]) => JSON.stringify(oldFields[key]) !== JSON.stringify(value));
+      return <div key={`change-${i}`} className="border border-accent/30 p-3 space-y-2">
+        <div className="flex justify-between items-start gap-2"><span className="text-sm">{name(item)}</span><DiffBadge type="changed" /></div>
+        {fields.map(([key, value]) => <div key={key} className="text-xs border-t border-border pt-2">
+          <span className="font-display uppercase text-muted-foreground">{key.replace(/_/g, " ")}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1"><p><span className="text-muted-foreground">Older: </span>{display(oldFields[key])}</p><p><span className="text-accent">Newer: </span>{display(value)}</p></div>
+        </div>)}
+      </div>;
+    })}
+  </section>;
 }
-
-function getConflictDiff(older: Conflict[], newer: Conflict[]) {
-  const olderNames = new Set(older.map(c => c.conflict_name.toLowerCase()));
-  const newerNames = new Set(newer.map(c => c.conflict_name.toLowerCase()));
-  
-  const added = newer.filter(c => !olderNames.has(c.conflict_name.toLowerCase()));
-  const removed = older.filter(c => !newerNames.has(c.conflict_name.toLowerCase()));
-  const unchanged = newer.filter(c => olderNames.has(c.conflict_name.toLowerCase()));
-  
-  return { added, removed, unchanged };
-}
-
-function DiffBadge({ type }: { type: 'added' | 'removed' | 'unchanged' }) {
-  if (type === 'added') {
-    return <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30"><Plus className="w-3 h-3" />NEW</span>;
-  }
-  if (type === 'removed') {
-    return <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-accent/20 text-accent border border-accent/30"><Minus className="w-3 h-3" />REMOVED</span>;
-  }
-  return <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-muted text-muted-foreground"><Equal className="w-3 h-3" />SAME</span>;
-}
-
-function StatComparison({ label, icon: Icon, older, newer }: { label: string; icon: React.ElementType; older: number; newer: number }) {
-  const diff = newer - older;
-  const diffColor = diff > 0 ? 'text-green-400' : diff < 0 ? 'text-accent' : 'text-muted-foreground';
-  
-  return (
-    <div className="flex items-center justify-between p-3 bg-muted/30 border border-border">
-      <div className="flex items-center gap-2">
-        <Icon className="w-4 h-4 text-muted-foreground" />
-        <span className="text-sm font-display uppercase tracking-wider">{label}</span>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className="font-mono text-muted-foreground">{older}</span>
-        <ArrowRight className="w-4 h-4 text-muted-foreground" />
-        <span className="font-mono text-foreground">{newer}</span>
-        {diff !== 0 && (
-          <span className={`font-mono text-xs ${diffColor}`}>
-            ({diff > 0 ? '+' : ''}{diff})
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function ModelComparison({ older, newer, onClose }: ModelComparisonProps) {
-  const entityDiff = getEntityDiff(older.model.entities || [], newer.model.entities || []);
-  const arcDiff = getArcDiff(older.model.current_arcs || [], newer.model.current_arcs || []);
-  const conflictDiff = getConflictDiff(older.model.conflicts || [], newer.model.conflicts || []);
-
-  return (
-    <div className="border border-border bg-card">
-      {/* Header */}
-      <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-muted/30">
-        <div className="flex items-center gap-3">
-          <TrendingUp className="w-4 h-4 text-accent" />
-          <span className="font-display text-sm uppercase tracking-widest">
-            Model Comparison
-          </span>
-        </div>
-        <button onClick={onClose} className="p-1 hover:bg-muted rounded">
-          <X className="w-4 h-4 text-muted-foreground" />
-        </button>
-      </div>
-
-      {/* Timeline */}
-      <div className="px-4 py-4 border-b border-border">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 p-3 bg-muted/50 border border-border">
-            <span className="text-xs text-muted-foreground font-mono block mb-1">OLDER</span>
-            <span className="text-sm font-mono text-foreground">
-              {format(new Date(older.created_at), "MMM d, yyyy HH:mm")}
-            </span>
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-              {older.input_text.substring(0, 80)}...
-            </p>
-          </div>
-          <ArrowRight className="w-6 h-6 text-accent flex-shrink-0" />
-          <div className="flex-1 p-3 bg-accent/10 border border-accent/30">
-            <span className="text-xs text-accent font-mono block mb-1">NEWER</span>
-            <span className="text-sm font-mono text-foreground">
-              {format(new Date(newer.created_at), "MMM d, yyyy HH:mm")}
-            </span>
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-              {newer.input_text.substring(0, 80)}...
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="p-4 border-b border-border space-y-2">
-        <h4 className="text-xs font-display uppercase tracking-widest text-muted-foreground mb-3">
-          Overview Changes
-        </h4>
-        <StatComparison 
-          label="Entities" 
-          icon={Users} 
-          older={older.model.entities?.length || 0} 
-          newer={newer.model.entities?.length || 0} 
-        />
-        <StatComparison 
-          label="Arcs" 
-          icon={GitBranch} 
-          older={older.model.current_arcs?.length || 0} 
-          newer={newer.model.current_arcs?.length || 0} 
-        />
-        <StatComparison 
-          label="Conflicts" 
-          icon={Flame} 
-          older={older.model.conflicts?.length || 0} 
-          newer={newer.model.conflicts?.length || 0} 
-        />
-        <StatComparison 
-          label="Opportunities" 
-          icon={Target} 
-          older={older.model.opportunities?.length || 0} 
-          newer={newer.model.opportunities?.length || 0} 
-        />
-        <StatComparison 
-          label="Risks" 
-          icon={AlertTriangle} 
-          older={older.model.risks?.length || 0} 
-          newer={newer.model.risks?.length || 0} 
-        />
-      </div>
-
-      {/* Detailed Diff */}
-      <div className="p-4 space-y-6 max-h-[400px] overflow-y-auto">
-        {/* Entities Diff */}
-        {(entityDiff.added.length > 0 || entityDiff.removed.length > 0) && (
-          <div>
-            <h4 className="text-xs font-display uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-              <Users className="w-3 h-3" /> Entity Changes
-            </h4>
-            <div className="space-y-2">
-              {entityDiff.added.map((entity, i) => (
-                <div key={`added-${i}`} className="flex items-center justify-between p-2 bg-green-500/10 border border-green-500/20">
-                  <span className="text-sm font-body">{entity.name}</span>
-                  <DiffBadge type="added" />
-                </div>
-              ))}
-              {entityDiff.removed.map((entity, i) => (
-                <div key={`removed-${i}`} className="flex items-center justify-between p-2 bg-accent/10 border border-accent/20">
-                  <span className="text-sm font-body line-through opacity-60">{entity.name}</span>
-                  <DiffBadge type="removed" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Arcs Diff */}
-        {(arcDiff.added.length > 0 || arcDiff.removed.length > 0) && (
-          <div>
-            <h4 className="text-xs font-display uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-              <GitBranch className="w-3 h-3" /> Arc Changes
-            </h4>
-            <div className="space-y-2">
-              {arcDiff.added.map((arc, i) => (
-                <div key={`added-${i}`} className="flex items-center justify-between p-2 bg-green-500/10 border border-green-500/20">
-                  <div>
-                    <span className="text-sm font-body block">{arc.arc_name}</span>
-                    <span className="text-xs text-muted-foreground">Stage: {arc.stage}</span>
-                  </div>
-                  <DiffBadge type="added" />
-                </div>
-              ))}
-              {arcDiff.removed.map((arc, i) => (
-                <div key={`removed-${i}`} className="flex items-center justify-between p-2 bg-accent/10 border border-accent/20">
-                  <span className="text-sm font-body line-through opacity-60">{arc.arc_name}</span>
-                  <DiffBadge type="removed" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Conflicts Diff */}
-        {(conflictDiff.added.length > 0 || conflictDiff.removed.length > 0) && (
-          <div>
-            <h4 className="text-xs font-display uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-              <Flame className="w-3 h-3" /> Conflict Changes
-            </h4>
-            <div className="space-y-2">
-              {conflictDiff.added.map((conflict, i) => (
-                <div key={`added-${i}`} className="flex items-center justify-between p-2 bg-green-500/10 border border-green-500/20">
-                  <div>
-                    <span className="text-sm font-body block">{conflict.conflict_name}</span>
-                    <span className="text-xs text-muted-foreground">Type: {conflict.type}</span>
-                  </div>
-                  <DiffBadge type="added" />
-                </div>
-              ))}
-              {conflictDiff.removed.map((conflict, i) => (
-                <div key={`removed-${i}`} className="flex items-center justify-between p-2 bg-accent/10 border border-accent/20">
-                  <span className="text-sm font-body line-through opacity-60">{conflict.conflict_name}</span>
-                  <DiffBadge type="removed" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Summary Comparison */}
-        <div>
-          <h4 className="text-xs font-display uppercase tracking-widest text-muted-foreground mb-3">
-            Narrative Summary
-          </h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 bg-muted/30 border border-border">
-              <span className="text-xs text-muted-foreground font-mono block mb-2">OLDER</span>
-              <p className="text-xs text-foreground font-body line-clamp-4">
-                {older.model.narrative_summary || "No summary"}
-              </p>
-            </div>
-            <div className="p-3 bg-accent/5 border border-accent/20">
-              <span className="text-xs text-accent font-mono block mb-2">NEWER</span>
-              <p className="text-xs text-foreground font-body line-clamp-4">
-                {newer.model.narrative_summary || "No summary"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+  const stats = [["Entities", older.model.entities.length, newer.model.entities.length], ["Arcs", older.model.current_arcs.length, newer.model.current_arcs.length], ["Conflicts", older.model.conflicts.length, newer.model.conflicts.length], ["Opportunities", older.model.opportunities.length, newer.model.opportunities.length], ["Risks", older.model.risks.length, newer.model.risks.length]] as const;
+  return <div className="border border-border bg-card">
+    <div className="border-b border-border px-4 py-3 flex items-center justify-between gap-2"><h3 className="font-display text-sm uppercase flex items-center gap-3"><TrendingUp className="w-4 h-4 text-accent" />Model Comparison</h3><Button variant="ghost" size="icon" onClick={onClose} aria-label="Close comparison" title="Close comparison"><X /></Button></div>
+    <div className="p-4 border-b border-border grid grid-cols-1 sm:grid-cols-2 items-center gap-3">
+      {[older, newer].map((item, index) => <div key={item.id} className={`min-w-0 p-3 border ${index ? "border-accent/30" : "border-border"}`}><span className="text-xs text-muted-foreground font-mono block">{index ? "NEWER" : "OLDER"}</span><p className="text-sm font-mono">{format(new Date(item.created_at), "MMM d, yyyy HH:mm")}</p><p className="text-xs text-muted-foreground line-clamp-2 mt-1">{item.input_text}</p></div>)}
     </div>
-  );
+    <div className="p-4 border-b border-border space-y-2">{stats.map(([label, before, after]) => <div key={label} className="flex justify-between items-center gap-2 text-sm"><span className="font-display uppercase">{label}</span><span className="font-mono flex items-center gap-3"><span className="text-muted-foreground">{before}</span><ArrowRight className="w-3 h-3" />{after}<span className="text-xs text-accent w-8">{after !== before ? `${after > before ? "+" : ""}${after-before}` : ""}</span></span></div>)}</div>
+    <div className="p-4 space-y-6">
+      <DiffSection title="Entities" older={older.model.entities} newer={newer.model.entities} name={e => e.name} />
+      <DiffSection title="Arcs" older={older.model.current_arcs} newer={newer.model.current_arcs} name={a => a.arc_name} />
+      <DiffSection title="Conflicts" older={older.model.conflicts} newer={newer.model.conflicts} name={c => c.conflict_name} />
+      <DiffSection title="Opportunities" older={older.model.opportunities} newer={newer.model.opportunities} name={o => o.opportunity_name} />
+      <DiffSection title="Risks" older={older.model.risks} newer={newer.model.risks} name={r => r.risk_name} />
+      <DiffSection title="Future Scenarios" older={older.model.future_scenarios} newer={newer.model.future_scenarios} name={s => s.scenario_name} />
+      <DiffSection title="Recommended Actions" older={older.model.recommended_actions} newer={newer.model.recommended_actions} name={a => a.action} />
+      <section><h4 className="text-xs font-display uppercase text-muted-foreground mb-3">Narrative Summary</h4><div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{[older,newer].map((item,index) => <div key={item.id} className="border border-border p-3"><span className="text-xs font-mono text-muted-foreground">{index ? "NEWER" : "OLDER"}</span><p className="text-sm mt-2">{item.model.narrative_summary || "No summary"}</p></div>)}</div></section>
+    </div>
+  </div>;
 }

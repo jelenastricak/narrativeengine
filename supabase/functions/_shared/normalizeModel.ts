@@ -94,9 +94,11 @@ export function normalizeNarrativeModel(input: unknown) {
   };
   const empty =
     !model.narrative_summary &&
-    model.entities.length + model.current_arcs.length + model.conflicts.length + model.recommended_actions.length === 0;
+    model.entities.length + model.current_arcs.length + model.conflicts.length + model.recommended_actions.length + model.risks.length + model.opportunities.length + model.future_scenarios.length === 0;
   if (empty) throw new Error("Analysis result contained no usable content");
   return model;
 }
 
 export const MAX_INPUT_CHARS = 100_000;
+
+export const MIN_INPUT_CHARS = 20;

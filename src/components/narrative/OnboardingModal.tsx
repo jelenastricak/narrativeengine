@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { X, ChevronRight, ChevronLeft, FileText, Users, GitBranch, AlertTriangle, Lightbulb, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useEffect, useState } from "react";
+import { ChevronRight, ChevronLeft, FileText, Users, GitBranch, AlertTriangle, Lightbulb, TrendingUp } from "lucide-react";
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -35,14 +37,14 @@ const steps = [
   {
     icon: TrendingUp,
     title: "EXPLORE FUTURE SCENARIOS",
-    description: "See probability-weighted future paths and domino effects. Anticipate what could happen next and prepare accordingly.",
+    description: "See hypothetical future paths, qualitative likelihoods, and domino effects. Anticipate what could happen next and prepare accordingly.",
   },
 ];
 
 export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
-  if (!isOpen) return null;
+  useEffect(() => { if (isOpen) setCurrentStep(0); }, [isOpen]);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -67,23 +69,8 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
   const isLastStep = currentStep === steps.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-background/90 backdrop-blur-sm"
-        onClick={handleSkip}
-      />
-      
-      {/* Modal */}
-      <div className="relative border border-border bg-background w-full max-w-lg">
-        {/* Close button */}
-        <button
-          onClick={handleSkip}
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
+    <Dialog open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="p-0 gap-0 max-w-lg">
         {/* Progress bar */}
         <div className="h-1 bg-border">
           <div 
@@ -107,18 +94,18 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
           </div>
 
           {/* Title */}
-          <h2 className="font-display text-lg tracking-[0.15em] text-foreground text-center mb-4">
+          <DialogTitle className="font-display text-lg tracking-[0.15em] text-foreground text-center mb-4">
             {step.title}
-          </h2>
+          </DialogTitle>
 
           {/* Description */}
-          <p className="text-sm text-muted-foreground font-body text-center leading-relaxed mb-8">
+          <DialogDescription className="text-sm text-muted-foreground font-body text-center leading-relaxed mb-8">
             {step.description}
-          </p>
+          </DialogDescription>
 
           {/* Navigation */}
           <div className="flex items-center justify-between">
-            <button
+            <Button variant="ghost"
               onClick={handlePrev}
               disabled={currentStep === 0}
               className={`flex items-center gap-1 text-xs font-mono transition-colors ${
@@ -129,40 +116,42 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
             >
               <ChevronLeft className="w-4 h-4" />
               Back
-            </button>
+            </Button>
 
-            <div className="flex gap-1.5">
+            <div className="flex gap-1">
               {steps.map((_, idx) => (
-                <button
+                <Button variant="ghost"
+                  size="icon"
+                  aria-label={`Tutorial step ${idx + 1}`}
                   key={idx}
                   onClick={() => setCurrentStep(idx)}
-                  className={`w-2 h-2 transition-colors ${
+                  className={`w-5 h-5 transition-colors ${
                     idx === currentStep ? 'bg-accent' : 'bg-border hover:bg-muted-foreground'
                   }`}
                 />
               ))}
             </div>
 
-            <button
+            <Button variant="ghost"
               onClick={handleNext}
               className="btn-hot flex items-center gap-1 px-4 py-2 text-xs"
             >
               {isLastStep ? "Get Started" : "Next"}
               {!isLastStep && <ChevronRight className="w-4 h-4" />}
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Skip button */}
         <div className="border-t border-border p-4 text-center">
-          <button
+          <Button variant="ghost"
             onClick={handleSkip}
             className="text-xs text-muted-foreground hover:text-foreground font-body underline underline-offset-4 transition-colors"
           >
             Skip tutorial
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

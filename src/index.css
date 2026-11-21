@@ -288,3 +288,13 @@
     border-color: hsl(var(--opportunity-blue));
   }
 }
+
+/* Narrative text is untrusted and may contain very long names or URLs. */
+@layer base {
+  main { overflow-wrap: anywhere; }
+  main .grid > *, main .flex > * { min-width: 0; }
+  button:focus-visible, a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

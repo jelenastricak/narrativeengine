@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/narrative/Header";
 import { NarrativeDashboard } from "@/components/narrative/NarrativeDashboard";
@@ -16,6 +16,7 @@ import { History, HelpCircle } from "lucide-react";
 import { AnalysisToolbar } from "@/components/narrative/AnalysisToolbar";
 import { EmptyState } from "@/components/narrative/EmptyState";
 import type { SavedAnalysis } from "@/hooks/useAnalysisHistory";
+import { Button } from "@/components/ui/button";
 
 const ONBOARDING_KEY = "narrative-engine-onboarding-seen";
 
@@ -28,6 +29,9 @@ interface ComparisonItem {
 
 const Index = () => {
   const [searchParams] = useSearchParams();
+  const [draft, setDraft] = useState("");
+  const [updateDraft, setUpdateDraft] = useState("");
+  const [isDemo, setIsDemo] = useState(false);
   const [model, setModel] = useState<NarrativeModel | null>(null);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const [showInput, setShowInput] = useState(true);
@@ -38,27 +42,39 @@ const Index = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const { analyzeNarrative, isLoading } = useNarrativeAnalysis();
-  const { saveAnalysis, deleteAnalysis } = useAnalysisHistory();
+  const { analyses, saveAnalysis, deleteAnalysis } = useAnalysisHistory();
 
-  // Auto-load demo if URL param present
+  const handleLoadDemo = useCallback(() => {
+    setModel(mockNarrative);
+    setIsDemo(true);
+    setCurrentAnalysisId(null);
+    setShowHistory(false);
+    setShowIncrementalInput(false);
+    setShowInput(false);
+  }, []);
+
   useEffect(() => {
-    if (searchParams.get('demo') === 'true') handleLoadDemo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+    if (searchParams.get("demo") === "true") handleLoadDemo();
+  }, [searchParams, handleLoadDemo]);
+
+  useEffect(() => {
+    if (currentAnalysisId && !analyses.some(a => a.id === currentAnalysisId)) setCurrentAnalysisId(null);
+  }, [analyses, currentAnalysisId]);
 
   // Show onboarding for first-time visitors
   useEffect(() => {
-    if (!localStorage.getItem(ONBOARDING_KEY)) {
-      setShowOnboarding(true);
-    }
+    try { setShowOnboarding(!localStorage.getItem(ONBOARDING_KEY)); }
+    catch { setShowOnboarding(true); }
   }, []);
 
   const handleCloseOnboarding = () => {
-    localStorage.setItem(ONBOARDING_KEY, "true");
+    try { localStorage.setItem(ONBOARDING_KEY, "true"); } catch { /* Still close when storage is blocked. */ }
     setShowOnboarding(false);
   };
 
   const handleAnalyze = async (text: string) => {
+    if (isLoading) return;
+    setDraft(text);
     setShowInput(false);
     setShowHistory(false);
     setShowIncrementalInput(false);
@@ -67,17 +83,17 @@ const Index = () => {
     setIsAnalyzing(false);
     if (result) {
       setModel(result);
-      const analysisId = await saveAnalysis(text, result);
-      if (analysisId) {
-        setCurrentAnalysisId(analysisId);
-      }
+      setIsDemo(false);
+      setCurrentAnalysisId(await saveAnalysis(text, result));
+      setDraft("");
     } else {
       setShowInput(true);
     }
   };
 
   const handleIncrementalUpdate = async (text: string) => {
-    if (!model) return;
+    if (!model || isLoading) return;
+    setUpdateDraft(text);
 
     setShowIncrementalInput(false);
     setIsAnalyzing(true);
@@ -85,20 +101,19 @@ const Index = () => {
     setIsAnalyzing(false);
     if (result) {
       setModel(result);
-      const analysisId = await saveAnalysis(`[Incremental Update]\n${text}`, result);
-      if (analysisId) {
-        setCurrentAnalysisId(analysisId);
-      }
+      setCurrentAnalysisId(await saveAnalysis(`${isDemo ? "[Demo-derived Incremental Update]" : "[Incremental Update]"}\n${text}`, result));
+      setUpdateDraft("");
+    } else {
+      setShowIncrementalInput(true);
     }
   };
 
-  const handleLoadDemo = () => {
-    setModel(mockNarrative);
-    setCurrentAnalysisId(null);
-    setShowInput(false);
-  };
-
   const handleNewAnalysis = () => {
+    setModel(null);
+    setIsDemo(false);
+    setShowComparison(false);
+    setComparisonData(null);
+    setUpdateDraft("");
     setShowInput(true);
     setShowHistory(false);
     setShowIncrementalInput(false);
@@ -107,6 +122,8 @@ const Index = () => {
 
   const handleLoadFromHistory = (loadedModel: NarrativeModel, analysisId?: string) => {
     setModel(loadedModel);
+    setIsDemo(analyses.find(a => a.id === analysisId)?.input_text.startsWith("[Demo-derived") ?? false);
+    setUpdateDraft("");
     setCurrentAnalysisId(analysisId || null);
     setShowInput(false);
     setShowHistory(false);
@@ -146,31 +163,31 @@ const Index = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <Header hasModel={!!model} />
+        <Header hasModel={!!model} isDemo={isDemo} />
 
         {/* Utility bar */}
         <div className="border-b border-border">
           <div className="container mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-4">
-              <button
-                onClick={() => setShowHistory(!showHistory)}
+              <Button variant="ghost"
+                aria-label="History" disabled={isLoading} onClick={() => setShowHistory(!showHistory)}
                 className={`flex items-center gap-1 text-xs font-mono transition-colors ${
                   showHistory ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <History className="w-3 h-3" />
                 <span className="hidden xs:inline">History</span>
-              </button>
+              </Button>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <button
-                onClick={() => setShowOnboarding(true)}
+              <Button variant="ghost"
+                aria-label="Help" onClick={() => setShowOnboarding(true)}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-mono transition-colors"
                 title="How it works"
               >
                 <HelpCircle className="w-3 h-3" />
                 <span className="hidden sm:inline">Help</span>
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -182,12 +199,12 @@ const Index = () => {
                 <h2 className="font-display text-base sm:text-lg tracking-[0.15em] text-foreground">
                   ANALYSIS HISTORY
                 </h2>
-                <button
+                <Button variant="ghost"
                   onClick={() => setShowHistory(false)}
                   className="btn-tactical text-xs"
                 >
                   Back
-                </button>
+                </Button>
               </div>
               <AnalysisHistory onLoadAnalysis={handleLoadFromHistory} onCompare={handleCompare} />
 
@@ -202,7 +219,7 @@ const Index = () => {
               )}
             </div>
           ) : showInput ? (
-            <EmptyState onAnalyze={handleAnalyze} onLoadDemo={handleLoadDemo} isLoading={isLoading} />
+            <EmptyState text={draft} onTextChange={setDraft} onAnalyze={handleAnalyze} onLoadDemo={handleLoadDemo} isLoading={isLoading} />
           ) : isAnalyzing ? (
             <NarrativeLoadingSkeleton />
           ) : (
@@ -210,6 +227,7 @@ const Index = () => {
               {model && (
                 <AnalysisToolbar
                   model={model}
+                  isDemo={isDemo}
                   canDelete={!!currentAnalysisId}
                   onDelete={handleDeleteAnalysis}
                   onNew={handleNewAnalysis}
@@ -220,6 +238,8 @@ const Index = () => {
               {showIncrementalInput && (
                 <div className="mb-8">
                   <IncrementalUpdateInput
+                    text={updateDraft}
+                    onTextChange={setUpdateDraft}
                     onSubmit={handleIncrementalUpdate}
                     onCancel={() => setShowIncrementalInput(false)}
                     isLoading={isLoading}

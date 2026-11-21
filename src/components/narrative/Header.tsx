@@ -1,13 +1,11 @@
-import { Menu, X } from "lucide-react";
-import { useState } from "react";
 import logo from "@/assets/logo.png";
 
 interface HeaderProps {
   hasModel: boolean;
+  isDemo?: boolean;
 }
 
-export function Header({ hasModel }: HeaderProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+export function Header({ hasModel, isDemo }: HeaderProps) {
 
   return (
     <header className="border-b border-border">
@@ -30,7 +28,7 @@ export function Header({ hasModel }: HeaderProps) {
           <div className="hidden sm:flex items-center gap-2">
             <div className={`w-2 h-2 ${hasModel ? 'bg-accent animate-pulse-hot' : 'bg-muted-foreground'}`} />
             <span className="text-xs font-mono text-muted-foreground uppercase">
-              {hasModel ? 'Model Active' : 'Awaiting Input'}
+              {isDemo ? 'Demo Model' : hasModel ? 'Model Active' : 'Awaiting Input'}
             </span>
           </div>
 
@@ -38,7 +36,7 @@ export function Header({ hasModel }: HeaderProps) {
           <div className="flex sm:hidden items-center gap-2">
             <div className={`w-2 h-2 ${hasModel ? 'bg-accent animate-pulse-hot' : 'bg-muted-foreground'}`} />
             <span className="text-xs font-mono text-muted-foreground uppercase">
-              {hasModel ? 'Active' : 'Ready'}
+              {isDemo ? 'Demo' : hasModel ? 'Active' : 'Ready'}
             </span>
           </div>
         </div>

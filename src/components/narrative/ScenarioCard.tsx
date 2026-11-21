@@ -1,6 +1,6 @@
 import { FutureScenario, Probability } from "@/types/narrative";
 import { cn } from "@/lib/utils";
-import { GitBranch, ArrowDown } from "lucide-react";
+import { GitBranch } from "lucide-react";
 
 interface ScenarioCardProps {
   scenario: FutureScenario;
@@ -27,7 +27,7 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
         </div>
         <div className="text-right">
           <span className="text-[10px] font-display uppercase tracking-wider text-muted-foreground block">
-            Probability
+            Inferred likelihood
           </span>
           <span className={cn("font-mono text-sm", styles.text)}>
             {scenario.probability.toUpperCase()}

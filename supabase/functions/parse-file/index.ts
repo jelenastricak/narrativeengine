@@ -1,12 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { fileValidationError, MAX_FILE_BYTES } from "../_shared/filePolicy.ts";
+import { MAX_INPUT_CHARS } from "../_shared/normalizeModel.ts";
+import { validateDocxArchive } from "../_shared/validateDocx.ts";
 import JSZip from "https://esm.sh/jszip@3.10.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 const decodeXml = (s: string) =>
   s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
@@ -14,6 +11,7 @@ const decodeXml = (s: string) =>
 // Parse DOCX file (ZIP with XML inside)
 async function parseDocx(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
+  validateDocxArchive(arrayBuffer);
   const zip = await JSZip.loadAsync(arrayBuffer);
   
   // DOCX stores main content in word/document.xml
@@ -65,24 +63,21 @@ serve(async (req) => {
       });
     }
 
-    if (file.size > MAX_FILE_BYTES) {
-      return new Response(JSON.stringify({ error: "File too large. Maximum size is 10MB." }), {
-        status: 413,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${file.size}`);
+    const validationError = fileValidationError(file);
+    if (validationError) return new Response(JSON.stringify({ error: validationError }), {
+      status: file.size > MAX_FILE_BYTES ? 413 : 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
     const fileName = file.name.toLowerCase();
     const fileType = file.type;
     let extractedText = "";
 
     // Handle different file types
-    if (fileType === "text/plain" || fileName.endsWith(".txt") || fileName.endsWith(".md")) {
+    if (fileName.endsWith(".txt") || fileName.endsWith(".md")) {
       extractedText = await file.text();
-      console.log("Extracted text from plain text file");
-    } else if (fileType === "application/json" || fileName.endsWith(".json")) {
+
+    } else if (fileName.endsWith(".json")) {
       const jsonContent = await file.text();
       try {
         const parsed = JSON.parse(jsonContent);
@@ -90,33 +85,32 @@ serve(async (req) => {
       } catch {
         extractedText = jsonContent;
       }
-      console.log("Extracted text from JSON file");
-    } else if (fileType === "text/csv" || fileName.endsWith(".csv")) {
+
+    } else if (fileName.endsWith(".csv")) {
       extractedText = await file.text();
-      console.log("Extracted text from CSV file");
-    } else if (fileType === "text/html" || fileName.endsWith(".html") || fileName.endsWith(".htm")) {
-      const htmlContent = await file.text();
-      extractedText = htmlContent.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-      console.log("Extracted text from HTML file");
-    } else if (fileType === "application/xml" || fileType === "text/xml" || fileName.endsWith(".xml")) {
+
+    } else if (fileName.endsWith(".html") || fileName.endsWith(".htm")) {
+      const htmlContent = (await file.text()).replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, " ");
+      extractedText = decodeXml(htmlContent.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
+
+    } else if (fileName.endsWith(".xml")) {
       extractedText = await file.text();
-      console.log("Extracted text from XML file");
+
     } else if (
-      fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
       fileName.endsWith(".docx")
     ) {
       // Parse DOCX natively using JSZip
       try {
         extractedText = await parseDocx(file);
-        console.log("Extracted text from DOCX file");
+
       } catch (docxError) {
         console.error("DOCX parsing error:", docxError);
         return new Response(JSON.stringify({ error: "Failed to parse DOCX file" }), {
-          status: 500,
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-    } else if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
+    } else if (fileName.endsWith(".pdf")) {
       // Extract PDF text natively (Gemini does not accept PDFs via image_url)
       try {
         const arrayBuffer = await file.arrayBuffer();
@@ -124,7 +118,7 @@ serve(async (req) => {
         const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
         const { text } = await extractText(pdf, { mergePages: true });
         extractedText = (Array.isArray(text) ? text.join("\n\n") : text) ?? "";
-        console.log(`Extracted ${extractedText.length} chars from PDF`);
+
       } catch (pdfError) {
         console.error("PDF parsing error:", pdfError);
         return new Response(
@@ -133,7 +127,7 @@ serve(async (req) => {
         );
       }
 
-    } else if (fileType === "application/msword" || fileName.endsWith(".doc")) {
+    } else if (fileName.endsWith(".doc")) {
       // Old .doc format is not supported
       return new Response(
         JSON.stringify({
@@ -156,14 +150,17 @@ serve(async (req) => {
       );
     }
 
+    if (extractedText.length > MAX_INPUT_CHARS) return new Response(
+      JSON.stringify({ error: "This document exceeds the 100,000-character analysis limit. Upload a shorter section." }),
+      { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
     if (!extractedText.trim()) {
-      return new Response(JSON.stringify({ error: "No text content could be extracted from the file" }), {
+      return new Response(JSON.stringify({ error: "No text could be extracted. Scanned or image-only PDFs are not supported; use a text-based document." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Successfully extracted ${extractedText.length} characters`);
 
     return new Response(
       JSON.stringify({

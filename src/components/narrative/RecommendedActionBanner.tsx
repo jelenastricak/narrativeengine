@@ -1,5 +1,5 @@
 import { RecommendedAction } from "@/types/narrative";
-import { AlertTriangle, ArrowRight, Shield } from "lucide-react";
+import { AlertTriangle, ArrowRight } from "lucide-react";
 
 interface RecommendedActionBannerProps {
   action: RecommendedAction;
@@ -11,7 +11,7 @@ export function RecommendedActionBanner({ action, index }: RecommendedActionBann
     <div className="border-2 border-accent bg-accent/5 p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 bg-accent flex items-center justify-center">
+        <div className="w-10 h-10 shrink-0 bg-accent flex items-center justify-center">
           <span className="font-display text-lg text-accent-foreground">
             {String(index + 1).padStart(2, '0')}
           </span>

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { Component, ErrorInfo, ReactNode } from "react";
 
 interface Props {
@@ -22,6 +23,16 @@ class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+    if (/Failed to fetch dynamically imported module|Loading chunk|Importing a module script failed/i.test(error.message)) {
+      try {
+        const key = "narrative-engine-chunk-reload";
+        const lastReload = Number(sessionStorage.getItem(key) || 0);
+        if (Date.now() - lastReload > 60_000) {
+          sessionStorage.setItem(key, String(Date.now()));
+          window.location.reload();
+        }
+      } catch { /* Keep the manual reload action available. */ }
+    }
   }
 
   private handleReload = () => {
@@ -48,12 +59,12 @@ class ErrorBoundary extends Component<Props, State> {
                 {this.state.error.message}
               </div>
             )}
-            <button
+            <Button variant="hot"
               onClick={this.handleReload}
               className="btn-hot"
             >
               Reload Application
-            </button>
+            </Button>
           </div>
         </div>
       );
